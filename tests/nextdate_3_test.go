@@ -50,7 +50,6 @@ func TestNextDate(t *testing.T) {
 			}
 			assert.Equal(t, v.want, next, `{%q, %q, %q}`,
 				v.date, v.repeat, v.want)
-
 		}
 	}
 

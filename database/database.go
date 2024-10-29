@@ -16,7 +16,7 @@ type DBStruct struct {
 	db *sql.DB
 }
 
-func CreateDB(dbFile string) error {
+func CreateTable(dbFile string) error {
 	db, _ := sql.Open("sqlite", dbFile)
 	_, err := db.Exec(`CREATE TABLE scheduler (
     "id" INTEGER NOT NULL PRIMARY KEY,
@@ -37,28 +37,30 @@ func CreateDB(dbFile string) error {
 	return nil
 }
 
-func OpenDB(DbFilePath string) (DBStruct, error) {
-	var DB DBStruct
-
+func OpenDB(DbFilePath string) (*DBStruct, error) {
+	DB := &DBStruct{}
 	dbFile := filepath.Join(DbFilePath, "scheduler.db")
-	fmt.Println(dbFile)
 	_, err := os.Stat(dbFile)
 	if os.IsNotExist(err) {
-		err = CreateDB(dbFile)
-		if err != nil {
-			log.Print(err.Error())
-			return DB, err
-		}
+		err = CreateTable(dbFile)
 	}
-	DB.db, _ = sql.Open("sqlite", dbFile)
+	if err != nil {
+		log.Print(err.Error())
+		return DB, err
+	}
+	DB.db, err = sql.Open("sqlite", dbFile)
+	if err != nil {
+		log.Print(err.Error())
+		return DB, err
+	}
 	return DB, nil
 }
 
-func (DB DBStruct) Close() {
+func (DB *DBStruct) Close() {
 	DB.db.Close()
 }
 
-func (DB DBStruct) InsertTask(task models.Task) (string, error) {
+func (DB *DBStruct) InsertTask(task models.Task) (string, error) {
 	res, err := DB.db.Exec("INSERT INTO scheduler (date, title, comment, repeat) values (:date, :title, :comment, :repeat)",
 		sql.Named("date", task.Date),
 		sql.Named("title", task.Title),
@@ -74,25 +76,7 @@ func (DB DBStruct) InsertTask(task models.Task) (string, error) {
 	return strconv.Itoa(int(id)), nil
 }
 
-func (DB DBStruct) SelectSortDate() ([]models.Task, error) {
-	tasks := []models.Task{}
-	res, err := DB.db.Query("SELECT * FROM scheduler ORDER BY date LIMIT 20")
-	if err != nil {
-		return tasks, err
-	}
-	for res.Next() {
-		task := models.Task{}
-		check := res.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
-		if check != nil {
-			break
-		}
-		tasks = append(tasks, task)
-	}
-	defer res.Close()
-	return tasks, nil
-}
-
-func (DB DBStruct) UpdateTask(task models.Task) error {
+func (DB *DBStruct) UpdateTask(task models.Task) error {
 	res, err := DB.db.Exec("UPDATE scheduler SET date = :date, title = :title, comment = :comment, repeat = :repeat WHERE id = :id",
 		sql.Named("date", task.Date),
 		sql.Named("title", task.Title),
@@ -112,7 +96,7 @@ func (DB DBStruct) UpdateTask(task models.Task) error {
 	return nil
 }
 
-func (DB DBStruct) DeleteTask(id string) error {
+func (DB *DBStruct) DeleteTask(id string) error {
 	_, err := strconv.Atoi(id)
 	if err != nil {
 		return err
@@ -124,7 +108,7 @@ func (DB DBStruct) DeleteTask(id string) error {
 	return nil
 }
 
-func (DB DBStruct) Select(selectConfig models.SelectConfig) ([]models.Task, error) {
+func (DB *DBStruct) Select(selectConfig models.SelectConfig) ([]models.Task, error) {
 	listTask := []models.Task{}
 	row := fmt.Sprintf("SELECT * FROM %s", selectConfig.Table)
 	if selectConfig.Search != "" || selectConfig.Date != "" || selectConfig.Id != "" {
@@ -151,9 +135,9 @@ func (DB DBStruct) Select(selectConfig models.SelectConfig) ([]models.Task, erro
 	}
 	for res.Next() {
 		task := models.Task{}
-		check := res.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
-		if check != nil {
-			break
+		err = res.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
+		if err != nil {
+			return listTask, err
 		}
 		listTask = append(listTask, task)
 	}

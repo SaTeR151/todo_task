@@ -63,7 +63,6 @@ func TestDelTask(t *testing.T) {
 	ret, err := postJSON("api/task?id="+id, nil, http.MethodDelete)
 	assert.NoError(t, err)
 	assert.Empty(t, ret)
-
 	notFoundTask(t, id)
 	ret, err = postJSON("api/task", nil, http.MethodDelete)
 	assert.NoError(t, err)

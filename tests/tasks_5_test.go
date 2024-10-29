@@ -64,6 +64,7 @@ func TestTasks(t *testing.T) {
 		comment: "",
 		repeat:  "",
 	})
+
 	addTask(t, task{
 		date:    date,
 		title:   "Оплатить коммуналку",
@@ -72,7 +73,6 @@ func TestTasks(t *testing.T) {
 	})
 	tasks = getTasks(t, "")
 	assert.Equal(t, len(tasks), 3)
-
 	now = now.AddDate(0, 0, 2)
 	date = now.Format(`20060102`)
 	addTask(t, task{

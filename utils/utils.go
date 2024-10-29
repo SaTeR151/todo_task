@@ -2,24 +2,12 @@ package utils
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/sater-151/todo-list/models"
 )
-
-func Config() (port string, dbFilePath string) {
-	port = os.Getenv("TODO_PORT")
-	dbFilePath = os.Getenv("TODO_DBFILE")
-	return port, dbFilePath
-}
-
-func GetPass() (pass string) {
-	pass = os.Getenv("TODO_PASSWORD")
-	return pass
-}
 
 func CheckCorrectRepeat(repeat string) error {
 	switch {
