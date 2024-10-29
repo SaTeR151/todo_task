@@ -46,7 +46,6 @@ func TestTask(t *testing.T) {
 	assert.Equal(t, task.title, m["title"])
 	assert.Equal(t, task.comment, m["comment"])
 	assert.Equal(t, task.repeat, m["repeat"])
-
 }
 
 type fulltask struct {

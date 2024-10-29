@@ -7,10 +7,10 @@ import (
 	"os"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sater-151/todo-list/config"
-	"github.com/sater-151/todo-list/database"
-	"github.com/sater-151/todo-list/handlers"
-	"github.com/sater-151/todo-list/service"
+	"github.com/sater-151/todo-list/internal/config"
+	"github.com/sater-151/todo-list/internal/database"
+	"github.com/sater-151/todo-list/internal/handlers"
+	"github.com/sater-151/todo-list/internal/service"
 )
 
 func setEnv() {

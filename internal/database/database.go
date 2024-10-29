@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/sater-151/todo-list/models"
+	"github.com/sater-151/todo-list/internal/models"
 	_ "modernc.org/sqlite"
 )
 

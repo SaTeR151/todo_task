@@ -10,11 +10,11 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/sater-151/todo-list/config"
-	"github.com/sater-151/todo-list/database"
-	"github.com/sater-151/todo-list/models"
-	"github.com/sater-151/todo-list/service"
-	"github.com/sater-151/todo-list/utils"
+	"github.com/sater-151/todo-list/internal/config"
+	"github.com/sater-151/todo-list/internal/database"
+	"github.com/sater-151/todo-list/internal/models"
+	"github.com/sater-151/todo-list/internal/service"
+	"github.com/sater-151/todo-list/internal/utils"
 )
 
 func ErrorHandler(res http.ResponseWriter, err error, status int) {

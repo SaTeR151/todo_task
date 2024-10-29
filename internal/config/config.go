@@ -3,7 +3,7 @@ package config
 import (
 	"os"
 
-	"github.com/sater-151/todo-list/models"
+	"github.com/sater-151/todo-list/internal/models"
 )
 
 func GetConfig() models.Config {
