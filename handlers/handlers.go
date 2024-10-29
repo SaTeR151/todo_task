@@ -13,7 +13,7 @@ import (
 	"github.com/sater-151/todo-list/database"
 	"github.com/sater-151/todo-list/models"
 	"github.com/sater-151/todo-list/services"
-	"github.com/sater-151/todo-list/utilities"
+	"github.com/sater-151/todo-list/utils"
 )
 
 func ErrorHandler(res http.ResponseWriter, err error, status int) {
@@ -41,7 +41,7 @@ func GetNextDate(res http.ResponseWriter, req *http.Request) {
 	}
 	date := req.FormValue("date")
 	repeat := req.FormValue("repeat")
-	nextDate, err := utilities.NextDate(nowTime, date, repeat)
+	nextDate, err := utils.NextDate(nowTime, date, repeat)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
@@ -194,7 +194,7 @@ func DeleteTask(DB database.DBStruct) http.HandlerFunc {
 
 func Sign(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-type", "application/json; charset=UTF-8")
-	passTrue := utilities.GetPass()
+	passTrue := utils.GetPass()
 	var passJS models.PasswordJS
 	var token models.JWTToken
 	err := json.NewDecoder(req.Body).Decode(&passJS)
@@ -221,7 +221,7 @@ func Sign(res http.ResponseWriter, req *http.Request) {
 
 func Auth(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		pass := utilities.GetPass()
+		pass := utils.GetPass()
 		if len(pass) > 0 {
 			cookie, err := req.Cookie("token")
 			if err != nil {

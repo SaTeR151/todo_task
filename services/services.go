@@ -6,13 +6,13 @@ import (
 
 	"github.com/sater-151/todo-list/database"
 	"github.com/sater-151/todo-list/models"
-	"github.com/sater-151/todo-list/utilities"
+	"github.com/sater-151/todo-list/utils"
 )
 
 func AddTask(db database.DBStruct, task models.Task) (models.ID, error) {
 	var Id models.ID
 	var err error
-	task, err = utilities.CheckTask(task)
+	task, err = utils.CheckTask(task)
 	if err != nil {
 		return Id, err
 	}
@@ -24,7 +24,7 @@ func AddTask(db database.DBStruct, task models.Task) (models.ID, error) {
 }
 
 func UpdateTask(db database.DBStruct, task models.Task) error {
-	task, err := utilities.CheckTask(task)
+	task, err := utils.CheckTask(task)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func TaskDone(db database.DBStruct, selectConfig models.SelectConfig) error {
 		}
 		return nil
 	}
-	task.Date, err = utilities.NextDate(time.Now(), task.Date, task.Repeat)
+	task.Date, err = utils.NextDate(time.Now(), task.Date, task.Repeat)
 	if err != nil {
 		return err
 	}

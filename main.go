@@ -7,11 +7,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sater-151/todo-list/database"
 	"github.com/sater-151/todo-list/handlers"
-	"github.com/sater-151/todo-list/utilities"
+	"github.com/sater-151/todo-list/utils"
 )
 
 func main() {
-	port, dbFilePath := utilities.Config()
+	port, dbFilePath := utils.Config()
 
 	Db, err := database.OpenDB(dbFilePath)
 	if err != nil {
