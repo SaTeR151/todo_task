@@ -1,4 +1,4 @@
-package services
+package service
 
 import (
 	"strings"
@@ -9,40 +9,48 @@ import (
 	"github.com/sater-151/todo-list/utils"
 )
 
-func AddTask(db database.DBStruct, task models.Task) (models.ID, error) {
+type Service struct {
+	db *database.DBStruct
+}
+
+func New(db *database.DBStruct) *Service {
+	return &Service{db: db}
+}
+
+func (s *Service) AddTask(task models.Task) (models.ID, error) {
 	var Id models.ID
 	var err error
 	task, err = utils.CheckTask(task)
 	if err != nil {
 		return Id, err
 	}
-	Id.ID, err = db.InsertTask(task)
+	Id.ID, err = s.db.InsertTask(task)
 	if err != nil {
 		return Id, err
 	}
 	return Id, nil
 }
 
-func UpdateTask(db database.DBStruct, task models.Task) error {
+func (s *Service) UpdateTask(task models.Task) error {
 	task, err := utils.CheckTask(task)
 	if err != nil {
 		return err
 	}
-	err = db.UpdateTask(task)
+	err = s.db.UpdateTask(task)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func TaskDone(db database.DBStruct, selectConfig models.SelectConfig) error {
-	tasks, err := db.Select(selectConfig)
+func (s *Service) TaskDone(selectConfig models.SelectConfig) error {
+	tasks, err := s.db.Select(selectConfig)
 	if err != nil {
 		return err
 	}
 	task := tasks[0]
 	if task.Repeat == "" {
-		err = db.DeleteTask(selectConfig.Id)
+		err = s.db.DeleteTask(selectConfig.Id)
 		if err != nil {
 			return err
 		}
@@ -52,14 +60,14 @@ func TaskDone(db database.DBStruct, selectConfig models.SelectConfig) error {
 	if err != nil {
 		return err
 	}
-	err = db.UpdateTask(task)
+	err = s.db.UpdateTask(task)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func GetListTask(db database.DBStruct, selectConfig models.SelectConfig) ([]models.Task, error) {
+func (s *Service) GetListTask(selectConfig models.SelectConfig) ([]models.Task, error) {
 	if selectConfig.Search != "" {
 		date := strings.Split(selectConfig.Search, ".")
 		if len(date) == 3 {
@@ -74,7 +82,7 @@ func GetListTask(db database.DBStruct, selectConfig models.SelectConfig) ([]mode
 			}
 		}
 	}
-	listTask, err := db.Select(selectConfig)
+	listTask, err := s.db.Select(selectConfig)
 	if err != nil {
 		return listTask, err
 	}

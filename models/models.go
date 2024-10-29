@@ -37,3 +37,8 @@ type SelectConfig struct {
 	TypeSort string
 	Table    string
 }
+
+type Config struct {
+	Port       string
+	DbFilePath string
+}

@@ -1,24 +1,48 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/sater-151/todo-list/config"
 	"github.com/sater-151/todo-list/database"
 	"github.com/sater-151/todo-list/handlers"
-	"github.com/sater-151/todo-list/utils"
+	"github.com/sater-151/todo-list/service"
 )
 
-func main() {
-	port, dbFilePath := utils.Config()
+func setEnv() {
+	port := "7540"
+	dbFile := "/mnt/c/Temp/go_final_project/"
+	pass := "TestPas"
+	err := os.Setenv("TODO_DBFILE", dbFile)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = os.Setenv("TODO_PORT", port)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = os.Setenv("TODO_PASSWORD", pass)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
 
-	Db, err := database.OpenDB(dbFilePath)
+func main() {
+	setEnv()
+	config := config.GetConfig()
+
+	db, err := database.OpenDB(config.DbFilePath)
 	if err != nil {
 		log.Println(err.Error())
 		return
 	}
-	defer Db.Close()
+	defer db.Close()
+
+	service := service.New(db)
 
 	r := chi.NewRouter()
 
@@ -26,19 +50,19 @@ func main() {
 	r.Handle("/*", http.FileServer(http.Dir(webDir)))
 
 	r.Get("/api/nextdate", handlers.GetNextDate)
-	r.Get("/api/tasks", handlers.Auth(handlers.ListTask(Db)))
-	r.Get("/api/task", handlers.Auth(handlers.GetTask(Db)))
+	r.Get("/api/tasks", handlers.Auth(handlers.ListTask(service)))
+	r.Get("/api/task", handlers.Auth(handlers.GetTask(db)))
 
-	r.Post("/api/task", handlers.Auth(handlers.PostTask(Db)))
-	r.Post("/api/task/done", handlers.Auth(handlers.PostTaskDone(Db)))
+	r.Post("/api/task", handlers.Auth(handlers.PostTask(service)))
+	r.Post("/api/task/done", handlers.Auth(handlers.PostTaskDone(service)))
 	r.Post("/api/signin", handlers.Sign)
 
-	r.Put("/api/task", handlers.Auth(handlers.PutTask(Db)))
+	r.Put("/api/task", handlers.Auth(handlers.PutTask(service)))
 
-	r.Delete("/api/task", handlers.Auth(handlers.DeleteTask(Db)))
+	r.Delete("/api/task", handlers.Auth(handlers.DeleteTask(db)))
 
-	log.Println("Server start at port:", port)
-	if err := http.ListenAndServe(":"+port, r); err != nil {
+	log.Println("Server start at port:", config.Port)
+	if err := http.ListenAndServe(":"+config.Port, r); err != nil {
 		log.Println("Ошибка запуска сервера:", err.Error())
 		return
 	}
