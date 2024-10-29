@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sater-151/todo-list/internal/config"
@@ -13,26 +11,7 @@ import (
 	"github.com/sater-151/todo-list/internal/service"
 )
 
-func setEnv() {
-	port := "7540"
-	dbFile := "/mnt/c/Temp/go_final_project/"
-	pass := "TestPas"
-	err := os.Setenv("TODO_DBFILE", dbFile)
-	if err != nil {
-		fmt.Println(err)
-	}
-	err = os.Setenv("TODO_PORT", port)
-	if err != nil {
-		fmt.Println(err)
-	}
-	err = os.Setenv("TODO_PASSWORD", pass)
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
 func main() {
-	setEnv()
 	config := config.GetConfig()
 
 	db, err := database.OpenDB(config.DbFilePath)
