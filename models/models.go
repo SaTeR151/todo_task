@@ -16,7 +16,7 @@ type Error struct {
 	Err string `json:"error"`
 }
 
-type TasksJS struct {
+type ListTask struct {
 	Tasks []Task `json:"tasks"`
 }
 
@@ -26,4 +26,14 @@ type PasswordJS struct {
 
 type JWTToken struct {
 	Token string `json:"token"`
+}
+
+type SelectConfig struct {
+	Id       string
+	Search   string
+	Date     string
+	Limit    string
+	Sort     string
+	TypeSort string
+	Table    string
 }

@@ -69,4 +69,5 @@ func TestApp(t *testing.T) {
 		return nil
 	}
 	assert.NoError(t, walkDir("../web", cmp))
+
 }

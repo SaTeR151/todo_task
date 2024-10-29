@@ -50,12 +50,15 @@ func TestNextDate(t *testing.T) {
 			}
 			assert.Equal(t, v.want, next, `{%q, %q, %q}`,
 				v.date, v.repeat, v.want)
+
 		}
 	}
+
 	check()
 	if !FullNextDate {
 		return
 	}
+
 	tbl = []nextDate{
 		{"20231106", "m 13", "20240213"},
 		{"20240120", "m 40,11,19", ""},

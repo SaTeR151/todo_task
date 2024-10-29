@@ -66,7 +66,6 @@ func postJSON(apipath string, values map[string]any, method string) (map[string]
 		m   map[string]any
 		err error
 	)
-
 	body, err := requestJSON(apipath, values, method)
 	if err != nil {
 		return nil, err
@@ -143,6 +142,7 @@ func TestAddTask(t *testing.T) {
 
 			assert.Equal(t, v.title, task.Title)
 			assert.Equal(t, v.comment, task.Comment)
+
 			assert.Equal(t, v.repeat, task.Repeat)
 			if task.Date < now.Format(`20060102`) {
 				t.Errorf("Дата не может быть меньше сегодняшней %v", v)

@@ -1,5 +1,0 @@
-services:
-  server:
-    build: .
-    ports: 
-      - "7540:7540"

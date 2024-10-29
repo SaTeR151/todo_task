@@ -4,16 +4,32 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/sater-151/todo-list/database"
-	m "github.com/sater-151/todo-list/models"
+	"github.com/sater-151/todo-list/models"
 	"github.com/sater-151/todo-list/services"
+	"github.com/sater-151/todo-list/utilities"
 )
+
+func ErrorHandler(res http.ResponseWriter, err error, status int) {
+	var errJS models.Error
+	errJS.Err = err.Error()
+	res.WriteHeader(status)
+	json.NewEncoder(res).Encode(errJS)
+}
+
+func CreateSelectConfig() models.SelectConfig {
+	var selectConfig models.SelectConfig
+	selectConfig.Limit = "20"
+	selectConfig.Sort = "date"
+	selectConfig.Table = "scheduler"
+	return selectConfig
+}
 
 func GetNextDate(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-type", "application/json; charset=UTF-8")
@@ -25,7 +41,7 @@ func GetNextDate(res http.ResponseWriter, req *http.Request) {
 	}
 	date := req.FormValue("date")
 	repeat := req.FormValue("repeat")
-	nextDate, err := services.NextDate(nowTime, date, repeat)
+	nextDate, err := utilities.NextDate(nowTime, date, repeat)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
@@ -34,285 +50,200 @@ func GetNextDate(res http.ResponseWriter, req *http.Request) {
 	res.Write([]byte(nextDate))
 }
 
-func PostTask(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("Content-type", "application/json; charset=UTF-8")
-	var task m.Task
-	var buf bytes.Buffer
-	var errJS m.Error
-	var idJS m.ID
-	_, err := buf.ReadFrom(req.Body)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-	err = json.Unmarshal(buf.Bytes(), &task)
-	if err != nil {
-		errJS.Err = err.Error()
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(errJS)
-		return
-	}
-	if task.Title == "" {
-		errJS.Err = "Title is empty"
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(errJS)
-		return
-	}
-	if task.Date == "" {
-		task.Date = time.Now().Format("20060102")
-	} else {
-		t, err := time.Parse("20060102", task.Date)
+func PostTask(DB database.DBStruct) http.HandlerFunc {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-type", "application/json; charset=UTF-8")
+		var task models.Task
+		var buf bytes.Buffer
+		var idJS models.ID
+		_, err := buf.ReadFrom(req.Body)
 		if err != nil {
-			errJS.Err = "Date is uncorrect form"
-			res.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(res).Encode(errJS)
+			log.Println(err.Error())
+			http.Error(res, err.Error(), http.StatusBadRequest)
 			return
 		}
-		now := time.Now().Format("20060102")
-		if t.Compare(time.Now()) == -1 && now != task.Date {
-			if task.Repeat == "" {
-				task.Date = time.Now().Format("20060102")
-			} else {
-				task.Date, err = services.NextDate(time.Now(), task.Date, task.Repeat)
-				if err != nil {
-					errJS.Err = err.Error()
-					res.WriteHeader(http.StatusBadRequest)
-					json.NewEncoder(res).Encode(errJS)
-					return
-				}
-			}
-		}
-	}
-	idJS.ID, err = database.InsertTask(task)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	res.WriteHeader(http.StatusOK)
-	json.NewEncoder(res).Encode(idJS)
-}
-
-func GetTasks(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("Content-type", "application/json; charset=UTF-8")
-	var errJS m.Error
-	search := req.FormValue("search")
-	if search == "" {
-		tasks, err := database.SelectSortDate()
+		err = json.Unmarshal(buf.Bytes(), &task)
 		if err != nil {
-			errJS.Err = err.Error()
-			res.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(res).Encode(errJS)
+			log.Println(err.Error())
+			ErrorHandler(res, err, http.StatusBadRequest)
 			return
 		}
-		tasksJS := m.TasksJS{Tasks: tasks}
+		idJS, err = services.AddTask(DB, task)
+		if err != nil {
+			log.Println(err.Error())
+			ErrorHandler(res, err, http.StatusBadRequest)
+			return
+		}
 		res.WriteHeader(http.StatusOK)
-		json.NewEncoder(res).Encode(tasksJS)
-		return
-	} else {
-		tasks, err := database.SelectBySearch(search)
+		json.NewEncoder(res).Encode(idJS)
+	})
+}
+
+func ListTask(DB database.DBStruct) http.HandlerFunc {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-type", "application/json; charset=UTF-8")
+		var err error
+		search := req.FormValue("search")
+		selectConfig := CreateSelectConfig()
+		if search != "" {
+			selectConfig.Search = search
+		}
+		tasks, err := services.GetListTask(DB, selectConfig)
 		if err != nil {
-			errJS.Err = err.Error()
-			res.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(res).Encode(errJS)
+			log.Println(err.Error())
+			ErrorHandler(res, err, http.StatusBadRequest)
 			return
 		}
-		tasksJS := m.TasksJS{Tasks: tasks}
+		listTask := models.ListTask{Tasks: tasks}
 		res.WriteHeader(http.StatusOK)
-		json.NewEncoder(res).Encode(tasksJS)
-		return
-	}
+		json.NewEncoder(res).Encode(listTask)
+	})
 }
 
-func GetTask(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("Content-type", "application/json; charset=UTF-8")
-	var errJS m.Error
-	id := req.FormValue("id")
-	if id == "" {
-		errJS.Err = "uncorrect id"
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(errJS)
-		return
-	}
-	task, err := database.SelectByID(id)
-	if err != nil {
-		errJS.Err = "no task"
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(errJS)
-		return
-	}
-	res.WriteHeader(http.StatusOK)
-	json.NewEncoder(res).Encode(task)
-}
-
-func PutTask(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("Content-type", "application/json; charset=UTF-8")
-	var task m.Task
-	var buf bytes.Buffer
-	var errJS m.Error
-	_, err := buf.ReadFrom(req.Body)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-	err = json.Unmarshal(buf.Bytes(), &task)
-	if err != nil {
-		errJS.Err = err.Error()
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(errJS)
-		return
-	}
-	if task.Title == "" {
-		errJS.Err = "Title is empty"
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(errJS)
-		return
-	}
-	if task.Date == "" {
-		task.Date = time.Now().Format("20060102")
-	} else {
-		t, err := time.Parse("20060102", task.Date)
-		if err != nil {
-			errJS.Err = "Date is uncorrect form"
-
-			res.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(res).Encode(errJS)
+func GetTask(DB database.DBStruct) http.HandlerFunc {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-type", "application/json; charset=UTF-8")
+		id := req.FormValue("id")
+		if id == "" {
+			log.Println("id required")
+			ErrorHandler(res, fmt.Errorf("id required"), http.StatusBadRequest)
 			return
 		}
-		now := time.Now().Format("20060102")
-		if t.Compare(time.Now()) == -1 && now != task.Date {
-			if task.Repeat == "" {
-				task.Date = time.Now().Format("20060102")
-			} else {
-				task.Date, err = services.NextDate(time.Now(), task.Date, task.Repeat)
-				if err != nil {
-					errJS.Err = err.Error()
-					res.WriteHeader(http.StatusBadRequest)
-					json.NewEncoder(res).Encode(errJS)
-					return
-				}
-			}
+		selectConfig := CreateSelectConfig()
+		selectConfig.Id = id
+		tasks, err := DB.Select(selectConfig)
+		if err != nil {
+			ErrorHandler(res, err, http.StatusBadRequest)
+			return
 		}
-	}
-	err = database.UpdateTask(task)
-	if err != nil {
-		errJS.Err = err.Error()
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(errJS)
-		return
-	}
-	res.WriteHeader(http.StatusOK)
-	json.NewEncoder(res).Encode(struct{}{})
-
+		if len(tasks) == 0 {
+			ErrorHandler(res, fmt.Errorf("not task"), http.StatusBadRequest)
+			return
+		}
+		task := tasks[0]
+		res.WriteHeader(http.StatusOK)
+		json.NewEncoder(res).Encode(task)
+	})
 }
 
-func PostTaskDone(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("Content-type", "application/json; charset=UTF-8")
-	var errJS m.Error
-	id := req.FormValue("id")
-	task, err := database.SelectByID(id)
-	if err != nil {
-		errJS.Err = err.Error()
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(errJS)
-		return
-	}
-	if task.Repeat == "" {
-		err = database.DeleteTask(id)
+func PutTask(DB database.DBStruct) http.HandlerFunc {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-type", "application/json; charset=UTF-8")
+		var task models.Task
+		var buf bytes.Buffer
+		_, err := buf.ReadFrom(req.Body)
 		if err != nil {
-			errJS.Err = err.Error()
-			res.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(res).Encode(errJS)
+			log.Println(err.Error())
+			http.Error(res, err.Error(), http.StatusBadRequest)
+			return
+		}
+		err = json.Unmarshal(buf.Bytes(), &task)
+		if err != nil {
+			log.Println(err.Error())
+			ErrorHandler(res, err, http.StatusBadRequest)
+			return
+		}
+
+		err = services.UpdateTask(DB, task)
+		if err != nil {
+			log.Println(err.Error())
+			ErrorHandler(res, err, http.StatusBadRequest)
 			return
 		}
 		res.WriteHeader(http.StatusOK)
 		json.NewEncoder(res).Encode(struct{}{})
-		return
-	}
-
-	task.Date, err = services.NextDate(time.Now(), task.Date, task.Repeat)
-	if err != nil {
-		errJS.Err = err.Error()
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(errJS)
-		return
-	}
-	err = database.UpdateTask(task)
-	if err != nil {
-		errJS.Err = err.Error()
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(errJS)
-		return
-	}
-	res.WriteHeader(http.StatusOK)
-	json.NewEncoder(res).Encode(struct{}{})
+	})
 }
 
-func DeleteTask(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("Content-type", "application/json; charset=UTF-8")
-	var errJS m.Error
-	id := req.FormValue("id")
-	err := database.DeleteTask(id)
-	if err != nil {
-		errJS.Err = err.Error()
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(errJS)
-		return
-	}
-	res.WriteHeader(http.StatusOK)
-	json.NewEncoder(res).Encode(struct{}{})
+func PostTaskDone(DB database.DBStruct) http.HandlerFunc {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-type", "application/json; charset=UTF-8")
+		id := req.FormValue("id")
+		selectConfig := CreateSelectConfig()
+		selectConfig.Id = id
+		err := services.TaskDone(DB, selectConfig)
+		if err != nil {
+			log.Println(err.Error())
+			ErrorHandler(res, err, http.StatusBadRequest)
+			return
+		}
+		res.WriteHeader(http.StatusOK)
+		json.NewEncoder(res).Encode(struct{}{})
+	})
+}
 
+func DeleteTask(DB database.DBStruct) http.HandlerFunc {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-type", "application/json; charset=UTF-8")
+		id := req.FormValue("id")
+		if id == "" {
+			log.Println("id required")
+			ErrorHandler(res, fmt.Errorf("id required"), http.StatusBadRequest)
+			return
+		}
+		err := DB.DeleteTask(id)
+		if err != nil {
+			log.Println(err.Error())
+			ErrorHandler(res, err, http.StatusBadRequest)
+			return
+		}
+		res.WriteHeader(http.StatusOK)
+		json.NewEncoder(res).Encode(struct{}{})
+	})
 }
 
 func Sign(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-type", "application/json; charset=UTF-8")
-	passTrue := os.Getenv("TODO_PASSWORD")
-	var passJS m.PasswordJS
-	var errJS m.Error
-	var token m.JWTToken
+	passTrue := utilities.GetPass()
+	var passJS models.PasswordJS
+	var token models.JWTToken
 	err := json.NewDecoder(req.Body).Decode(&passJS)
 	if err != nil {
-		errJS.Err = err.Error()
-		res.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(res).Encode(errJS)
+		log.Println(err.Error())
+		ErrorHandler(res, err, http.StatusBadRequest)
 		return
 	}
 	if passTrue != passJS.Pass {
-		errJS.Err = "Неверный пароль"
-		res.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(res).Encode(errJS)
+		log.Println("wrong password")
+		ErrorHandler(res, fmt.Errorf("wrong password"), http.StatusBadRequest)
 		return
 	}
 	jwtToken := jwt.New(jwt.SigningMethodHS256)
 	token.Token, err = jwtToken.SignedString([]byte(passTrue))
 	if err != nil {
-		errJS.Err = fmt.Sprintf("filed to sign jwt: %v", err.Error())
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(errJS)
+		log.Println(err.Error())
+		ErrorHandler(res, err, http.StatusBadRequest)
 		return
 	}
 	res.WriteHeader(http.StatusOK)
 	json.NewEncoder(res).Encode(token)
 }
 
-func Auth(n http.HandlerFunc) http.HandlerFunc {
+func Auth(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		pass := os.Getenv("TODO_PASSWORD")
+		pass := utilities.GetPass()
 		if len(pass) > 0 {
 			cookie, err := req.Cookie("token")
 			if err != nil {
-				http.Error(res, err.Error(), http.StatusUnauthorized)
+				log.Println(err.Error())
+				ErrorHandler(res, err, http.StatusUnauthorized)
 				return
 			}
 			jwtCookie := cookie.Value
 			jwtToken, err := jwt.Parse(jwtCookie, func(t *jwt.Token) (interface{}, error) {
 				return []byte(pass), nil
 			})
-			if err != nil || !jwtToken.Valid {
-				http.Error(res, err.Error(), http.StatusUnauthorized)
+			if err != nil {
+				log.Println(err.Error())
+				ErrorHandler(res, err, http.StatusUnauthorized)
+				return
+			}
+			if !jwtToken.Valid {
+				log.Println("token is invalid")
+				ErrorHandler(res, fmt.Errorf("token is invalid"), http.StatusUnauthorized)
 				return
 			}
 		}
-		n(res, req)
+		next(res, req)
 	})
 }

@@ -1,41 +1,24 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sater-151/todo-list/database"
 	"github.com/sater-151/todo-list/handlers"
+	"github.com/sater-151/todo-list/utilities"
 )
 
-func setEnv() {
-	port := "7540"
-	dbFile := "/app"
-	pass := "TestPas"
-	err := os.Setenv("TODO_DBFILE", dbFile)
-	if err != nil {
-		fmt.Println(err)
-	}
-	err = os.Setenv("TODO_PORT", port)
-	if err != nil {
-		fmt.Println(err)
-	}
-	err = os.Setenv("TODO_PASSWORD", pass)
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
 func main() {
-	// setEnv()
-	port := os.Getenv("TODO_PORT")
-	dbFilePath := os.Getenv("TODO_DBFILE")
+	port, dbFilePath := utilities.Config()
 
-	database.OpenDB(dbFilePath)
-	defer database.DBClose()
+	Db, err := database.OpenDB(dbFilePath)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	defer Db.Close()
 
 	r := chi.NewRouter()
 
@@ -43,20 +26,20 @@ func main() {
 	r.Handle("/*", http.FileServer(http.Dir(webDir)))
 
 	r.Get("/api/nextdate", handlers.GetNextDate)
-	r.Get("/api/tasks", handlers.Auth(handlers.GetTasks))
-	r.Get("/api/task", handlers.Auth(handlers.GetTask))
+	r.Get("/api/tasks", handlers.Auth(handlers.ListTask(Db)))
+	r.Get("/api/task", handlers.Auth(handlers.GetTask(Db)))
 
-	r.Post("/api/task", handlers.Auth(handlers.PostTask))
-	r.Post("/api/task/done", handlers.Auth(handlers.PostTaskDone))
+	r.Post("/api/task", handlers.Auth(handlers.PostTask(Db)))
+	r.Post("/api/task/done", handlers.Auth(handlers.PostTaskDone(Db)))
 	r.Post("/api/signin", handlers.Sign)
 
-	r.Put("/api/task", handlers.Auth(handlers.PutTask))
+	r.Put("/api/task", handlers.Auth(handlers.PutTask(Db)))
 
-	r.Delete("/api/task", handlers.Auth(handlers.DeleteTask))
+	r.Delete("/api/task", handlers.Auth(handlers.DeleteTask(Db)))
 
-	log.Printf("Server start at port: %s", port)
+	log.Println("Server start at port:", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
-		log.Print("Ошибка запуска сервера:", err.Error())
+		log.Println("Ошибка запуска сервера:", err.Error())
 		return
 	}
 }
