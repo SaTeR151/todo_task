@@ -4,9 +4,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sater-151/todo-list/database"
-	"github.com/sater-151/todo-list/models"
-	"github.com/sater-151/todo-list/utils"
+	"github.com/sater-151/todo-list/internal/database"
+	"github.com/sater-151/todo-list/internal/models"
+	"github.com/sater-151/todo-list/internal/utils"
 )
 
 type Service struct {

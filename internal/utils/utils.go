@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sater-151/todo-list/models"
+	"github.com/sater-151/todo-list/internal/models"
 )
 
 func CheckCorrectRepeat(repeat string) error {

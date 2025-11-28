@@ -1,41 +1,24 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sater-151/todo-list/config"
-	"github.com/sater-151/todo-list/database"
-	"github.com/sater-151/todo-list/handlers"
-	"github.com/sater-151/todo-list/service"
+	"github.com/sater-151/todo-list/internal/config"
+	"github.com/sater-151/todo-list/internal/database"
+	"github.com/sater-151/todo-list/internal/handlers"
+	"github.com/sater-151/todo-list/internal/service"
 )
 
-func setEnv() {
-	port := "7540"
-	dbFile := "/mnt/c/Temp/go_final_project/"
-	pass := "TestPas"
-	err := os.Setenv("TODO_DBFILE", dbFile)
-	if err != nil {
-		fmt.Println(err)
-	}
-	err = os.Setenv("TODO_PORT", port)
-	if err != nil {
-		fmt.Println(err)
-	}
-	err = os.Setenv("TODO_PASSWORD", pass)
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
 func main() {
-	setEnv()
-	config := config.GetConfig()
+	config, err := config.GetConfig()
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
 
-	db, err := database.OpenDB(config.DbFilePath)
+	db, err := database.OpenDB(config.Database.DbFilePath)
 	if err != nil {
 		log.Println(err.Error())
 		return
@@ -61,8 +44,8 @@ func main() {
 
 	r.Delete("/api/task", handlers.Auth(handlers.DeleteTask(db)))
 
-	log.Println("Server start at port:", config.Port)
-	if err := http.ListenAndServe(":"+config.Port, r); err != nil {
+	log.Println("Server start at port:", config.HttpClient.Port)
+	if err := http.ListenAndServe(":"+config.HttpClient.Port, r); err != nil {
 		log.Println("Ошибка запуска сервера:", err.Error())
 		return
 	}
