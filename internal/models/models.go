@@ -39,6 +39,15 @@ type SelectConfig struct {
 }
 
 type Config struct {
-	Port       string
-	DbFilePath string
+	HttpClient HttpClient `mapstructure:"HttpClient"`
+	Database   Database   `mapstructure:"Database"`
+}
+
+type HttpClient struct {
+	Port     string `mapstructure:"Port"`
+	Password string `mapstructure:"Password"`
+}
+
+type Database struct {
+	DbFilePath string `mapstructure:"DbFilePath"`
 }

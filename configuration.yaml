@@ -1,0 +1,7 @@
+HTTPClient:
+  Port: 8080
+  Password: TestPas
+
+DataBase:
+  DBFile: /app
+

@@ -1,19 +1,38 @@
 package config
 
 import (
-	"os"
+	"fmt"
 
 	"github.com/sater-151/todo-list/internal/models"
+	"github.com/spf13/viper"
 )
 
-func GetConfig() models.Config {
+const (
+	configFile = "configuration.yaml"
+)
+
+var password string
+
+func GetConfig() (models.Config, error) {
 	var config models.Config
-	config.Port = os.Getenv("TODO_PORT")
-	config.DbFilePath = os.Getenv("TODO_DBFILE")
-	return config
+
+	viper.SetConfigFile(configFile)
+
+	if err := viper.ReadInConfig(); err != nil {
+		return config, fmt.Errorf("ошибка чтения конфигурации: %w", err)
+	}
+
+	// Преобразование конфигурации в структуру
+	if err := viper.Unmarshal(&config); err != nil {
+		return config, fmt.Errorf("ошибка преобразования конфигурации: %w", err)
+	}
+
+	password = config.HttpClient.Password
+
+	return config, nil
 }
 
 func GetPass() (pass string) {
-	pass = os.Getenv("TODO_PASSWORD")
+	pass = password
 	return pass
 }

@@ -12,9 +12,13 @@ import (
 )
 
 func main() {
-	config := config.GetConfig()
+	config, err := config.GetConfig()
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
 
-	db, err := database.OpenDB(config.DbFilePath)
+	db, err := database.OpenDB(config.Database.DbFilePath)
 	if err != nil {
 		log.Println(err.Error())
 		return
@@ -40,8 +44,8 @@ func main() {
 
 	r.Delete("/api/task", handlers.Auth(handlers.DeleteTask(db)))
 
-	log.Println("Server start at port:", config.Port)
-	if err := http.ListenAndServe(":"+config.Port, r); err != nil {
+	log.Println("Server start at port:", config.HttpClient.Port)
+	if err := http.ListenAndServe(":"+config.HttpClient.Port, r); err != nil {
 		log.Println("Ошибка запуска сервера:", err.Error())
 		return
 	}
