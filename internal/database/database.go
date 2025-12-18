@@ -108,26 +108,26 @@ func (DB *DBStruct) DeleteTask(id string) error {
 	return nil
 }
 
-func (DB *DBStruct) Select(selectConfig models.SelectConfig) ([]models.Task, error) {
+func (DB *DBStruct) Select(selectconfiguration models.Selectconfiguration) ([]models.Task, error) {
 	listTask := []models.Task{}
-	row := fmt.Sprintf("SELECT * FROM %s", selectConfig.Table)
-	if selectConfig.Search != "" || selectConfig.Date != "" || selectConfig.Id != "" {
+	row := fmt.Sprintf("SELECT * FROM %s", selectconfiguration.Table)
+	if selectconfiguration.Search != "" || selectconfiguration.Date != "" || selectconfiguration.Id != "" {
 		row += " WHERE"
 	}
-	if selectConfig.Search != "" {
-		row += fmt.Sprintf(" title LIKE %s OR comment LIKE %s", "'%"+selectConfig.Search+"%'", "'%"+selectConfig.Search+"%'")
+	if selectconfiguration.Search != "" {
+		row += fmt.Sprintf(" title LIKE %s OR comment LIKE %s", "'%"+selectconfiguration.Search+"%'", "'%"+selectconfiguration.Search+"%'")
 	}
-	if selectConfig.Date != "" {
-		row += fmt.Sprintf(" date = '%s'", selectConfig.Date)
+	if selectconfiguration.Date != "" {
+		row += fmt.Sprintf(" date = '%s'", selectconfiguration.Date)
 	}
-	if selectConfig.Id != "" {
-		row += fmt.Sprintf(" id = %s", selectConfig.Id)
+	if selectconfiguration.Id != "" {
+		row += fmt.Sprintf(" id = %s", selectconfiguration.Id)
 	}
-	if selectConfig.Sort != "" {
-		row += fmt.Sprintf(" ORDER BY %s %s", selectConfig.Sort, selectConfig.TypeSort)
+	if selectconfiguration.Sort != "" {
+		row += fmt.Sprintf(" ORDER BY %s %s", selectconfiguration.Sort, selectconfiguration.TypeSort)
 	}
-	if selectConfig.Limit != "" {
-		row += fmt.Sprintf(" LIMIT %s", selectConfig.Limit)
+	if selectconfiguration.Limit != "" {
+		row += fmt.Sprintf(" LIMIT %s", selectconfiguration.Limit)
 	}
 	res, err := DB.db.Query(row)
 	if err != nil {

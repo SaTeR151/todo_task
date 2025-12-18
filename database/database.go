@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	m "github.com/sater-151/todo-list/models"
+	"github.com/sater-151/todo-list/internal/models"
 	_ "modernc.org/sqlite"
 )
 
@@ -53,7 +53,7 @@ func OpenDB(DbFilePath string) {
 	}
 }
 
-func InsertTask(task m.Task) (string, error) {
+func InsertTask(task models.Task) (string, error) {
 	res, err := DB.db.Exec("INSERT INTO scheduler (date, title, comment, repeat) values (:date, :title, :comment, :repeat)",
 		sql.Named("date", task.Date),
 		sql.Named("title", task.Title),
@@ -66,14 +66,14 @@ func InsertTask(task m.Task) (string, error) {
 	return strconv.Itoa(int(id)), nil
 }
 
-func SelectSortDate() ([]m.Task, error) {
-	tasks := []m.Task{}
+func SelectSortDate() ([]models.Task, error) {
+	tasks := []models.Task{}
 	res, err := DB.db.Query("SELECT * FROM scheduler ORDER BY date LIMIT 20")
 	if err != nil {
 		return tasks, err
 	}
 	for res.Next() {
-		task := m.Task{}
+		task := models.Task{}
 		check := res.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 		if check != nil {
 			break
@@ -84,8 +84,8 @@ func SelectSortDate() ([]m.Task, error) {
 	return tasks, nil
 }
 
-func SelectBySearch(search string) ([]m.Task, error) {
-	tasks := []m.Task{}
+func SelectBySearch(search string) ([]models.Task, error) {
+	tasks := []models.Task{}
 	var res *sql.Rows
 	var d string
 	var err error
@@ -110,7 +110,7 @@ func SelectBySearch(search string) ([]m.Task, error) {
 		}
 	}
 	for res.Next() {
-		task := m.Task{}
+		task := models.Task{}
 		check := res.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 		if check != nil {
 			break
@@ -121,8 +121,8 @@ func SelectBySearch(search string) ([]m.Task, error) {
 	return tasks, nil
 }
 
-func SelectByID(id string) (m.Task, error) {
-	task := m.Task{}
+func SelectByID(id string) (models.Task, error) {
+	task := models.Task{}
 	var date int
 	idNum, err := strconv.Atoi(id)
 	if err != nil {
@@ -138,7 +138,7 @@ func SelectByID(id string) (m.Task, error) {
 	return task, nil
 }
 
-func UpdateTask(task m.Task) error {
+func UpdateTask(task models.Task) error {
 	_, err := SelectByID(task.ID)
 	if err != nil {
 		return err

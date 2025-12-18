@@ -10,7 +10,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/sater-151/todo-list/internal/config"
+	"github.com/sater-151/todo-list/internal/configuration"
 	"github.com/sater-151/todo-list/internal/database"
 	"github.com/sater-151/todo-list/internal/models"
 	"github.com/sater-151/todo-list/internal/service"
@@ -24,12 +24,12 @@ func ErrorHandler(res http.ResponseWriter, err error, status int) {
 	json.NewEncoder(res).Encode(errJS)
 }
 
-func CreateDefaultSelectConfig() models.SelectConfig {
-	var selectConfig models.SelectConfig
-	selectConfig.Limit = "20"
-	selectConfig.Sort = "date"
-	selectConfig.Table = "scheduler"
-	return selectConfig
+func CreateDefaultSelectconfiguration() models.Selectconfiguration {
+	var selectconfiguration models.Selectconfiguration
+	selectconfiguration.Limit = "20"
+	selectconfiguration.Sort = "date"
+	selectconfiguration.Table = "scheduler"
+	return selectconfiguration
 }
 
 func GetNextDate(res http.ResponseWriter, req *http.Request) {
@@ -85,11 +85,11 @@ func ListTask(s *service.Service) http.HandlerFunc {
 		res.Header().Set("Content-type", "application/json; charset=UTF-8")
 		var err error
 		search := req.FormValue("search")
-		selectConfig := CreateDefaultSelectConfig()
+		selectconfiguration := CreateDefaultSelectconfiguration()
 		if search != "" {
-			selectConfig.Search = search
+			selectconfiguration.Search = search
 		}
-		tasks, err := s.GetListTask(selectConfig)
+		tasks, err := s.GetListTask(selectconfiguration)
 		if err != nil {
 			log.Println(err.Error())
 			ErrorHandler(res, err, http.StatusBadRequest)
@@ -110,9 +110,9 @@ func GetTask(db *database.DBStruct) http.HandlerFunc {
 			ErrorHandler(res, fmt.Errorf("id required"), http.StatusBadRequest)
 			return
 		}
-		selectConfig := CreateDefaultSelectConfig()
-		selectConfig.Id = id
-		tasks, err := db.Select(selectConfig)
+		selectconfiguration := CreateDefaultSelectconfiguration()
+		selectconfiguration.Id = id
+		tasks, err := db.Select(selectconfiguration)
 		if err != nil {
 			ErrorHandler(res, err, http.StatusBadRequest)
 			return
@@ -160,9 +160,9 @@ func PostTaskDone(s *service.Service) http.HandlerFunc {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-type", "application/json; charset=UTF-8")
 		id := req.FormValue("id")
-		selectConfig := CreateDefaultSelectConfig()
-		selectConfig.Id = id
-		err := s.TaskDone(selectConfig)
+		selectconfiguration := CreateDefaultSelectconfiguration()
+		selectconfiguration.Id = id
+		err := s.TaskDone(selectconfiguration)
 		if err != nil {
 			log.Println(err.Error())
 			ErrorHandler(res, err, http.StatusBadRequest)
@@ -195,7 +195,7 @@ func DeleteTask(db *database.DBStruct) http.HandlerFunc {
 
 func Sign(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-type", "application/json; charset=UTF-8")
-	passTrue := config.GetPass()
+	passTrue := configuration.GetPass()
 	var passJS models.PasswordJS
 	var token models.JWTToken
 	err := json.NewDecoder(req.Body).Decode(&passJS)
@@ -222,7 +222,7 @@ func Sign(res http.ResponseWriter, req *http.Request) {
 
 func Auth(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		pass := config.GetPass()
+		pass := configuration.GetPass()
 		if len(pass) > 0 {
 			cookie, err := req.Cookie("token")
 			if err != nil {

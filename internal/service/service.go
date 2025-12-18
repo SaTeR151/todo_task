@@ -43,14 +43,14 @@ func (s *Service) UpdateTask(task models.Task) error {
 	return nil
 }
 
-func (s *Service) TaskDone(selectConfig models.SelectConfig) error {
-	tasks, err := s.db.Select(selectConfig)
+func (s *Service) TaskDone(selectconfiguration models.Selectconfiguration) error {
+	tasks, err := s.db.Select(selectconfiguration)
 	if err != nil {
 		return err
 	}
 	task := tasks[0]
 	if task.Repeat == "" {
-		err = s.db.DeleteTask(selectConfig.Id)
+		err = s.db.DeleteTask(selectconfiguration.Id)
 		if err != nil {
 			return err
 		}
@@ -67,9 +67,9 @@ func (s *Service) TaskDone(selectConfig models.SelectConfig) error {
 	return nil
 }
 
-func (s *Service) GetListTask(selectConfig models.SelectConfig) ([]models.Task, error) {
-	if selectConfig.Search != "" {
-		date := strings.Split(selectConfig.Search, ".")
+func (s *Service) GetListTask(selectconfiguration models.Selectconfiguration) ([]models.Task, error) {
+	if selectconfiguration.Search != "" {
+		date := strings.Split(selectconfiguration.Search, ".")
 		if len(date) == 3 {
 			var d string
 			for i := 2; i >= 0; i-- {
@@ -77,12 +77,12 @@ func (s *Service) GetListTask(selectConfig models.SelectConfig) ([]models.Task, 
 			}
 			_, err := time.Parse("20060102", d)
 			if err == nil {
-				selectConfig.Search = ""
-				selectConfig.Date = d
+				selectconfiguration.Search = ""
+				selectconfiguration.Date = d
 			}
 		}
 	}
-	listTask, err := s.db.Select(selectConfig)
+	listTask, err := s.db.Select(selectconfiguration)
 	if err != nil {
 		return listTask, err
 	}

@@ -8,8 +8,22 @@ type Task struct {
 	Repeat  string `json:"repeat"`
 }
 
+type SelectConfig struct {
+	Id       string
+	Search   string
+	Date     string
+	Limit    string
+	Sort     string
+	TypeSort string
+	Table    string
+}
+
 type ID struct {
 	ID string `json:"id"`
+}
+
+type TasksJS struct {
+	Tasks []Task `json:"tasks"`
 }
 
 type Error struct {
@@ -28,7 +42,7 @@ type JWTToken struct {
 	Token string `json:"token"`
 }
 
-type SelectConfig struct {
+type Selectconfiguration struct {
 	Id       string
 	Search   string
 	Date     string
@@ -38,7 +52,7 @@ type SelectConfig struct {
 	Table    string
 }
 
-type Config struct {
+type configuration struct {
 	HttpClient HttpClient `mapstructure:"HttpClient"`
 	Database   Database   `mapstructure:"Database"`
 }

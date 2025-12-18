@@ -1,9 +1,16 @@
-version: "v1.0.2"
-name: TODO-Task
 services:
-  server:
-    build: .
-    env_file:
-      - .env
-    ports: 
-      - "7540:7540"
+  postgres:
+    image: postgres:latest
+    container_name: todo_task
+    restart: on-failure
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: todo_task
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
