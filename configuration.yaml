@@ -11,8 +11,5 @@ HTTPServer:
   MaxHeaderBytes: 500
   ShutdownTimeout: 5s
   TestPass: password 
-  
 
-DataBase:
-  DBFile: /app
 

@@ -17,7 +17,7 @@ const (
 type (
 	Configurations struct {
 		Logger     *Logger     `mapstructure:"Logger" validate:"required"`
-		HTTPServer *HTTPServer `mapstructure:"HttpClient" validate:"required"`
+		HTTPServer *HTTPServer `mapstructure:"HTTPServer" validate:"required"`
 		Version    string      `validate:"-"`
 	}
 
@@ -29,15 +29,12 @@ type (
 		ReadHeaderTimeout time.Duration `mapstructure:"ReadHeaderTimeout" validate:"required"`
 		IdleTimeout       time.Duration `mapstructure:"IdleTimeout" validate:"required"`
 		MaxHeaderBytes    int           `mapstructure:"MaxHeaderBytes" validate:"gt=0"`
-		TestPass          string        `mapstructure:"TestPass" validate:"required"`
 	}
 
 	Logger struct {
 		Level slog.Level `mapstructure:"Level" validate:"min=-4,max=8"`
 	}
 )
-
-var password string
 
 func NewConfig() (*Configurations, error) {
 	vp := viper.New()
@@ -57,9 +54,4 @@ func NewConfig() (*Configurations, error) {
 	}
 
 	return &configurations, nil
-}
-
-func GetPass() (pass string) {
-	pass = password
-	return pass
 }

@@ -3,12 +3,11 @@
 CREATE TABLE scheduler (
     uuid UUID NOT NULL,
     date BIGINT NOT NULL,
-    title TEXT NOT NULL DEFAULT "",
+    title TEXT NOT NULL DEFAULT '',
     comment TEXT,
-    repeat TEXT NOT NULL
+    repeat TEXT NOT NULL,
 
     CONSTRAINT scheduler_pk PRIMARY KEY (uuid)
-
 );
 -- +goose StatementEnd
 

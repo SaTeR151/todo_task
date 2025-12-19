@@ -15,10 +15,15 @@ const (
 type (
 	Credentials struct {
 		Postgres *Postgres `mapstructure:"Postgres" validate:"required"`
+		Data     *Data     `mapstructure:"Data" validate:"required"`
 	}
 
 	Postgres struct {
 		ConnString string `mapstructure:"ConnString" validate:"required"`
+	}
+
+	Data struct {
+		Password string `mapstructure:"Password" validate:"required"`
 	}
 )
 

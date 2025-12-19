@@ -3,27 +3,39 @@ package rest
 import (
 	"net/http"
 
-	"github.com/gorilla/mux"
-	"github.com/sater-151/todo-list/internal/handlers"
-	"gl.iteco.com/technology/go_services/iteco_notifgatev2/whatsapp/internal/pkg/errorspkg"
-	"gl.iteco.com/technology/go_services/toolbox/validate"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/sater-151/todo-list/internal/pkg/errorspkg"
+	"github.com/sater-151/todo-list/internal/pkg/validate"
 )
 
 const (
-	PathMetrics = "/metrics"
-
-	PathWebhookWhatsApp = "/api/webhooks/whatsapp"
+	webDir       = "web"
+	PathApi      = "/api"
+	PathNextDate = "/nextdate"
+	PathTasks    = "/tasks"
+	PathTask     = "/task"
+	PathTaskDone = "/task/done"
+	PathSignin   = "/signin"
 )
 
 type (
-	OnemsgWebhook interface {
-		Handle(w http.ResponseWriter, r *http.Request)
+	ITodoTaskHandlers interface {
+		GetNextDate(res http.ResponseWriter, req *http.Request)
+		PostTask(res http.ResponseWriter, req *http.Request)
+		ListTask(res http.ResponseWriter, req *http.Request)
+		GetTask(res http.ResponseWriter, req *http.Request)
+		PutTask(res http.ResponseWriter, req *http.Request)
+		PostTaskDone(res http.ResponseWriter, req *http.Request)
+		DeleteTask(res http.ResponseWriter, req *http.Request)
+		Sign(res http.ResponseWriter, req *http.Request)
+		Auth(n http.HandlerFunc) http.HandlerFunc
 	}
 )
 
 type (
 	RouterDependencies struct {
-		TodoTask
+		Handlers ITodoTaskHandlers
 	}
 )
 
@@ -32,22 +44,24 @@ func NewRouter(d *RouterDependencies) (http.Handler, error) {
 		return nil, errorspkg.NewValidationError("rest.NewRouter", d, err)
 	}
 
-	r := mux.NewRouter()
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
 
-	webDir := "web"
+	// --- API ---
+	r.Route(PathApi, func(r chi.Router) {
+		r.Get(PathNextDate, d.Handlers.GetNextDate)
+		r.Get(PathTasks, d.Handlers.Auth(d.Handlers.ListTask))
+		r.Get(PathTask, d.Handlers.Auth(d.Handlers.GetTask))
+
+		r.Post(PathTask, d.Handlers.Auth(d.Handlers.PostTask))
+		r.Post(PathTaskDone, d.Handlers.Auth(d.Handlers.PostTaskDone))
+		r.Post(PathSignin, d.Handlers.Sign)
+
+		r.Put(PathTask, d.Handlers.Auth(d.Handlers.PutTask))
+		r.Delete(PathTask, d.Handlers.Auth(d.Handlers.DeleteTask))
+	})
+
 	r.Handle("/*", http.FileServer(http.Dir(webDir)))
-
-	r.Get("/api/nextdate", handlers.GetNextDate)
-	r.Get("/api/tasks", handlers.Auth(handlers.ListTask(service)))
-	r.Get("/api/task", handlers.Auth(handlers.GetTask(db)))
-
-	r.Post("/api/task", handlers.Auth(handlers.PostTask(service)))
-	r.Post("/api/task/done", handlers.Auth(handlers.PostTaskDone(service)))
-	r.Post("/api/signin", handlers.Sign)
-
-	r.Put("/api/task", handlers.Auth(handlers.PutTask(service)))
-
-	r.Delete("/api/task", handlers.Auth(handlers.DeleteTask(db)))
 
 	return r, nil
 }
