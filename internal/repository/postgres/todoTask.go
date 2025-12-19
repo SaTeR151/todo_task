@@ -3,8 +3,8 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sater-151/todo-list/internal/models"
 )
@@ -20,25 +20,36 @@ func NewTodoTaskRepo(pool *pgxpool.Pool) *TodoTaskRepo {
 }
 
 func (r *TodoTaskRepo) InsertTask(ctx context.Context, task models.Task) (string, error) {
-	var id int
+	fmt.Println(task.Repeat)
+	fmt.Println(task.Repeat == "")
+	fmt.Println(task.Repeat == " ")
 
-	err := r.pool.QueryRow(
+	taskUUID, err := uuid.NewV7()
+	if err != nil {
+		taskUUID = uuid.New()
+	}
+
+	_, err = r.pool.Exec(
 		ctx,
-		`INSERT INTO scheduler (date, title, comment, repeat)
-		 VALUES ($1, $2, $3, $4)
-		 RETURNING id`,
-		task.Date, task.Title, task.Comment, task.Repeat,
-	).Scan(&id)
-
+		`INSERT INTO scheduler (
+		uuid, 
+		date, 
+		title, 
+		comment, 
+		repeat
+		)
+		 VALUES ($1, $2, $3, $4, $5)`,
+		taskUUID.String(), task.Date, task.Title, task.Comment, task.Repeat,
+	)
 	if err != nil {
 		return "", err
 	}
 
-	return strconv.Itoa(id), nil
+	return taskUUID.String(), nil
 }
 
 func (r *TodoTaskRepo) UpdateTask(ctx context.Context, task models.Task) error {
-	res, err := r.pool.Exec(ctx, "UPDATE scheduler SET date = &1, title = &2, comment = &3, repeat = &4 WHERE id = &5",
+	res, err := r.pool.Exec(ctx, "UPDATE scheduler SET date = $1, title = $2, comment = $3, repeat = $4 WHERE uuid = $5",
 		task.Date,
 		task.Title,
 		task.Comment,
@@ -56,7 +67,7 @@ func (r *TodoTaskRepo) UpdateTask(ctx context.Context, task models.Task) error {
 }
 
 func (r *TodoTaskRepo) DeleteTask(ctx context.Context, uuid string) error {
-	_, err := r.pool.Exec(ctx, "DELETE FROM scheduler WHERE id = &1", uuid)
+	_, err := r.pool.Exec(ctx, "DELETE FROM scheduler WHERE uuid = $1", uuid)
 	if err != nil {
 		return err
 	}
@@ -76,7 +87,7 @@ func (r *TodoTaskRepo) Select(ctx context.Context, selectConfig models.SelectCon
 		row += fmt.Sprintf(" date = '%s'", selectConfig.Date)
 	}
 	if selectConfig.Id != "" {
-		row += fmt.Sprintf(" id = %s", selectConfig.Id)
+		row += fmt.Sprintf(" uuid = '%s'", selectConfig.Id)
 	}
 	if selectConfig.Sort != "" {
 		row += fmt.Sprintf(" ORDER BY %s %s", selectConfig.Sort, selectConfig.TypeSort)
@@ -84,10 +95,13 @@ func (r *TodoTaskRepo) Select(ctx context.Context, selectConfig models.SelectCon
 	if selectConfig.Limit != "" {
 		row += fmt.Sprintf(" LIMIT %s", selectConfig.Limit)
 	}
+
 	res, err := r.pool.Query(ctx, row)
 	if err != nil {
 		return listTask, err
 	}
+	defer res.Close()
+
 	for res.Next() {
 		task := models.Task{}
 		err = res.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
@@ -96,6 +110,6 @@ func (r *TodoTaskRepo) Select(ctx context.Context, selectConfig models.SelectCon
 		}
 		listTask = append(listTask, task)
 	}
-	defer res.Close()
+
 	return listTask, nil
 }

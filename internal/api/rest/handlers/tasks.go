@@ -159,6 +159,7 @@ func (s *TodoTaskServer) GetTask(res http.ResponseWriter, req *http.Request) {
 		ErrorHandler(res, err, http.StatusBadRequest)
 		return
 	}
+
 	if len(tasks) == 0 {
 		ErrorHandler(res, fmt.Errorf("not task"), http.StatusBadRequest)
 		return

@@ -21,7 +21,9 @@ func NewUsecases(d *UsecasesDependencies) (*Usecases, error) {
 		return nil, errorspkg.NewValidationError("app.NewUsecases", d, err)
 	}
 
-	todoTask, err := usecases.NewTodoTask(&usecases.TodoTaskDependencies{})
+	todoTask, err := usecases.NewTodoTask(&usecases.TodoTaskDependencies{
+		TodoTaskRepo: d.Repository.TodoTask,
+	})
 	if err != nil {
 		return nil, err
 	}

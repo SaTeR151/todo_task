@@ -22,7 +22,7 @@ type (
 
 type (
 	TodoTaskDependencies struct {
-		TodoTaskRepo ITodoTaskRepo
+		TodoTaskRepo ITodoTaskRepo `validate:"required"`
 	}
 
 	TodoTask struct {
@@ -105,9 +105,11 @@ func (s *TodoTask) GetListTask(ctx context.Context, selectConfig models.SelectCo
 			}
 		}
 	}
+
 	listTask, err := s.todoTaskRepo.Select(ctx, selectConfig)
 	if err != nil {
 		return listTask, err
 	}
+
 	return listTask, err
 }

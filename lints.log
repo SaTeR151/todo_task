@@ -1,0 +1,18 @@
+internal/api/rest/handlers/tasks.go:63:29: Error return value of `(*encoding/json.Encoder).Encode` is not checked (errcheck)
+	json.NewEncoder(res).Encode(errJS)
+	                           ^
+internal/api/rest/handlers/tasks.go:91:11: Error return value of `res.Write` is not checked (errcheck)
+	res.Write([]byte(nextDate))
+	         ^
+internal/api/rest/handlers/tasks.go:120:29: Error return value of `(*encoding/json.Encoder).Encode` is not checked (errcheck)
+	json.NewEncoder(res).Encode(idJS)
+	                           ^
+internal/api/rest/handlers/tasks.go:142:29: Error return value of `(*encoding/json.Encoder).Encode` is not checked (errcheck)
+	json.NewEncoder(res).Encode(listTask)
+	                           ^
+internal/models/models.go:55:6: type configuration is unused (unused)
+type configuration struct {
+     ^
+5 issues:
+* errcheck: 4
+* unused: 1

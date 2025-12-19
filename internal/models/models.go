@@ -41,27 +41,3 @@ type PasswordJS struct {
 type JWTToken struct {
 	Token string `json:"token"`
 }
-
-type Selectconfiguration struct {
-	Id       string
-	Search   string
-	Date     string
-	Limit    string
-	Sort     string
-	TypeSort string
-	Table    string
-}
-
-type configuration struct {
-	HttpClient HttpClient `mapstructure:"HttpClient"`
-	Database   Database   `mapstructure:"Database"`
-}
-
-type HttpClient struct {
-	Port     string `mapstructure:"Port"`
-	Password string `mapstructure:"Password"`
-}
-
-type Database struct {
-	DbFilePath string `mapstructure:"DbFilePath"`
-}

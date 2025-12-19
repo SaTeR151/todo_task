@@ -46,7 +46,7 @@ func New(ctx context.Context, d *Dependencies) (*App, error) {
 		return nil, err
 	}
 
-	todoTaskHandlers, err := handlers.NewTodoTaskHandlers(&handlers.TodoTaskServerDependencies{
+	handlers, err := handlers.NewTodoTaskHandlers(&handlers.TodoTaskServerDependencies{
 		TodoTaskUsecase: uc.TodoTask,
 		TodoTaskRepo:    repo.TodoTask,
 		Password:        d.Credentials.Data.Password,
@@ -55,15 +55,15 @@ func New(ctx context.Context, d *Dependencies) (*App, error) {
 		return nil, err
 	}
 
-	router, err := rest.NewRouter(&rest.RouterDependencies{
-		Handlers: todoTaskHandlers,
+	r, err := rest.NewRouter(&rest.RouterDependencies{
+		Handlers: handlers,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	server, err := rest.NewServer(rest.ServerDependencies{
-		Handler: router,
+		Handler: r,
 		Config:  d.Configuration.HTTPServer,
 	})
 	if err != nil {
