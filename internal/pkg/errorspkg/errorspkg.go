@@ -1,8 +1,14 @@
 package errorspkg
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
+)
+
+var (
+	ErrBadRequest    = errors.New("bad request")
+	ErrInternalError = errors.New("internal error")
 )
 
 type ValidationError struct {
@@ -50,5 +56,23 @@ func NewRepoFailedError(method, operation, what string, err error) error {
 		Operation: operation,
 		What:      what,
 		ErrorMsg:  err,
+	}
+}
+
+type StrconvError struct {
+	Method         string
+	ConvertedValue string
+	ErrorMsg       error
+}
+
+func (e StrconvError) Error() string {
+	return fmt.Sprintf("[%s] failed to convert [%s]: error=%s", e.Method, e.ConvertedValue, e.ErrorMsg.Error())
+}
+
+func NewStrconvError(method, convertedValue string, err error) error {
+	return StrconvError{
+		Method:         method,
+		ConvertedValue: convertedValue,
+		ErrorMsg:       err,
 	}
 }

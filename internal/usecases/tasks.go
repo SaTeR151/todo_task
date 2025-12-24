@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -40,16 +41,19 @@ func NewTodoTask(d *TodoTaskDependencies) (*TodoTask, error) {
 	}, nil
 }
 
-func (s *TodoTask) AddTask(ctx context.Context, task *models.Task) (models.ID, error) {
-	var id models.ID
-	var err error
-	task, err = datevalidating.CheckTask(task)
+func (s *TodoTask) AddTask(ctx context.Context, task *models.Task) (string, error) {
+	task, err := datevalidating.CheckTask(task)
 	if err != nil {
-		return id, err
+		slog.Error(err.Error())
+
+		return "", errorspkg.ErrBadRequest
 	}
-	id.ID, err = s.todoTaskRepo.InsertTask(ctx, task)
+
+	id, err := s.todoTaskRepo.InsertTask(ctx, task)
 	if err != nil {
-		return id, err
+		slog.Error(err.Error())
+
+		return "", errorspkg.ErrInternalError
 	}
 
 	return id, nil
@@ -58,36 +62,57 @@ func (s *TodoTask) AddTask(ctx context.Context, task *models.Task) (models.ID, e
 func (s *TodoTask) UpdateTask(ctx context.Context, task *models.Task) error {
 	task, err := datevalidating.CheckTask(task)
 	if err != nil {
-		return err
+		slog.Error(err.Error())
+
+		return errorspkg.ErrBadRequest
 	}
 
 	err = s.todoTaskRepo.UpdateTask(ctx, task)
 	if err != nil {
-		return err
+		slog.Error(err.Error())
+
+		return errorspkg.ErrInternalError
 	}
 
 	return nil
 }
 
 func (s *TodoTask) DeleteTask(ctx context.Context, uuid string) error {
-	return s.todoTaskRepo.DeleteTask(ctx, uuid)
+	if err := s.todoTaskRepo.DeleteTask(ctx, uuid); err != nil {
+		slog.Error(err.Error())
+
+		return errorspkg.ErrInternalError
+	}
+
+	return nil
 }
 
 func (s *TodoTask) Select(ctx context.Context, selectConfig *models.SelectConfig) ([]models.Task, error) {
-	return s.todoTaskRepo.Select(ctx, selectConfig)
+	tasks, err := s.todoTaskRepo.Select(ctx, selectConfig)
+	if err != nil {
+		slog.Error(err.Error())
+
+		return nil, errorspkg.ErrInternalError
+	}
+
+	return tasks, nil
 }
 
 func (s *TodoTask) TaskDone(ctx context.Context, selectConfig *models.SelectConfig) error {
 	tasks, err := s.todoTaskRepo.Select(ctx, selectConfig)
 	if err != nil {
-		return err
+		slog.Error(err.Error())
+
+		return errorspkg.ErrInternalError
 	}
 
 	task := tasks[0]
 	if task.Repeat == "" {
 		err = s.todoTaskRepo.DeleteTask(ctx, selectConfig.ID)
 		if err != nil {
-			return err
+			slog.Error(err.Error())
+
+			return errorspkg.ErrInternalError
 		}
 
 		return nil
@@ -95,12 +120,15 @@ func (s *TodoTask) TaskDone(ctx context.Context, selectConfig *models.SelectConf
 
 	task.Date, err = datevalidating.NextDate(time.Now(), task.Date, task.Repeat)
 	if err != nil {
-		return err
+		slog.Error(err.Error())
+
+		return errorspkg.ErrBadRequest
 	}
 
-	err = s.todoTaskRepo.UpdateTask(ctx, &task)
-	if err != nil {
-		return err
+	if err := s.todoTaskRepo.UpdateTask(ctx, &task); err != nil {
+		slog.Error(err.Error())
+
+		return errorspkg.ErrInternalError
 	}
 
 	return nil
@@ -124,7 +152,9 @@ func (s *TodoTask) GetListTask(ctx context.Context, selectConfig *models.SelectC
 
 	listTask, err := s.todoTaskRepo.Select(ctx, selectConfig)
 	if err != nil {
-		return listTask, err
+		slog.Error(err.Error())
+
+		return nil, errorspkg.ErrInternalError
 	}
 
 	return listTask, err

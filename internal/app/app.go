@@ -9,6 +9,7 @@ import (
 
 	"github.com/sater-151/todo-list/internal/api/rest"
 	"github.com/sater-151/todo-list/internal/api/rest/handlers"
+	"github.com/sater-151/todo-list/internal/api/rest/middlewares"
 	"github.com/sater-151/todo-list/internal/configuration"
 	"github.com/sater-151/todo-list/internal/credentials"
 	"github.com/sater-151/todo-list/internal/pkg/errorspkg"
@@ -54,8 +55,13 @@ func New(ctx context.Context, d *Dependencies) (*App, error) {
 		return nil, err
 	}
 
+	mw, err := middlewares.NewMiddlewares(&middlewares.MiddlewaresDependencies{
+		Password: d.Credentials.Data.Password,
+	})
+
 	r, err := rest.NewRouter(&rest.RouterDependencies{
-		Handlers: todoTaskHandlers,
+		Handlers:   todoTaskHandlers,
+		InternalMW: mw,
 	})
 	if err != nil {
 		return nil, err

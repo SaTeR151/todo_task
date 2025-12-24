@@ -1,4 +1,4 @@
-// nolint: gocyclo, gocritic
+// nolint: gocyclo
 package datevalidating
 
 import (
@@ -8,9 +8,12 @@ import (
 	"time"
 
 	"github.com/sater-151/todo-list/internal/models"
+	"github.com/sater-151/todo-list/internal/pkg/errorspkg"
 )
 
 func CheckCorrectRepeat(repeat string) error {
+	const method = "CheckCorrectRepeat"
+
 	switch {
 	case repeat == "":
 		return fmt.Errorf("repeat is empty")
@@ -22,7 +25,7 @@ func CheckCorrectRepeat(repeat string) error {
 		repeatMas := strings.Split(repeat, " ")
 		d, err := strconv.Atoi(repeatMas[1])
 		if err != nil {
-			return err
+			return errorspkg.NewStrconvError(method, repeatMas[1], err)
 		}
 
 		if len(repeatMas) == 2 && d <= 400 {
@@ -34,18 +37,17 @@ func CheckCorrectRepeat(repeat string) error {
 
 		weekday := strings.Split(repeatMas[1], ",")
 		if len(weekday) > 7 || len(weekday) == 0 {
-			return fmt.Errorf("uncorrect repeat")
+			return fmt.Errorf("incorrect repeat")
 		}
 
 		for i := 0; i < len(weekday); i++ {
 			buf, err := strconv.Atoi(weekday[i])
-
 			if err != nil {
-				return err
+				return errorspkg.NewStrconvError(method, weekday[i], err)
 			}
 
 			if buf > 7 || buf < 1 {
-				return fmt.Errorf("uncorrect repeat")
+				return fmt.Errorf("incorrect repeat")
 			}
 		}
 
@@ -59,10 +61,10 @@ func CheckCorrectRepeat(repeat string) error {
 			for _, i := range days {
 				buf, err := strconv.Atoi(i)
 				if err != nil {
-					return err
+					return errorspkg.NewStrconvError(method, i, err)
 				}
 				if buf < (-2) || buf == 0 || buf > 31 {
-					return fmt.Errorf("uncorrect repeat")
+					return fmt.Errorf("incorrect repeat")
 				}
 			}
 
@@ -70,26 +72,29 @@ func CheckCorrectRepeat(repeat string) error {
 				months := strings.Split(repeatMas[2], ",")
 				for _, i := range months {
 					buf, err := strconv.Atoi(i)
-					if buf < 1 || buf > 12 {
-						return fmt.Errorf("uncorrect repeat")
-					}
 					if err != nil {
-						return err
+						return errorspkg.NewStrconvError(method, i, err)
+					}
+
+					if buf < 1 || buf > 12 {
+						return fmt.Errorf("incorrect repeat")
 					}
 				}
 
 			}
 		} else {
-			return fmt.Errorf("uncorrect repeat")
+			return fmt.Errorf("incorrect repeat")
 		}
 
 		return nil
 	}
 
-	return fmt.Errorf("uncorrect repeat")
+	return fmt.Errorf("incorrect repeat")
 }
 
 func NextDate(now time.Time, date, repeat string) (string, error) {
+	const method = "NextDate"
+
 	err := CheckCorrectRepeat(repeat)
 	if err != nil {
 		return "", err
@@ -97,7 +102,7 @@ func NextDate(now time.Time, date, repeat string) (string, error) {
 
 	dateParse, err := time.Parse("20060102", date)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf(fmt.Sprintf("failed to parse task.Date to time: error=%s", err.Error()))
 	}
 
 	repeatParse := strings.Split(repeat, " ")
@@ -113,7 +118,7 @@ func NextDate(now time.Time, date, repeat string) (string, error) {
 	case "d":
 		days, err := strconv.Atoi(repeatParse[1])
 		if err != nil {
-			return "", err
+			return "", errorspkg.NewStrconvError(method, repeatParse[1], err)
 		}
 
 		for {
@@ -130,7 +135,7 @@ func NextDate(now time.Time, date, repeat string) (string, error) {
 		for i := 0; i < len(weekday); i++ {
 			buf, err := strconv.Atoi(weekday[i])
 			if err != nil {
-				return "", err
+				return "", errorspkg.NewStrconvError(method, weekday[i], err)
 			}
 			if buf == 7 {
 				buf = 0
@@ -173,12 +178,12 @@ func NextDate(now time.Time, date, repeat string) (string, error) {
 					}
 					a, err := strconv.Atoi(i)
 					if err != nil {
-						return "", err
+						return "", errorspkg.NewStrconvError(method, i, err)
 					}
 
 					b, err := strconv.Atoi(dateParse.Format("2"))
 					if err != nil {
-						return "", err
+						return "", errorspkg.NewStrconvError(method, dateParse.Format("2"), err)
 					}
 
 					if a == b && now.Compare(dateParse) == -1 {
@@ -200,12 +205,12 @@ func NextDate(now time.Time, date, repeat string) (string, error) {
 							for _, j := range months {
 								c, err := strconv.Atoi(j)
 								if err != nil {
-									return "", err
+									return "", errorspkg.NewStrconvError(method, j, err)
 								}
 
 								d, err := strconv.Atoi(dateParse.Format("1"))
 								if err != nil {
-									return "", err
+									return "", errorspkg.NewStrconvError(method, dateParse.Format("1"), err)
 								}
 
 								if d == c && now.Compare(dateParse) == -1 {
@@ -222,12 +227,12 @@ func NextDate(now time.Time, date, repeat string) (string, error) {
 							for _, j := range months {
 								c, err := strconv.Atoi(j)
 								if err != nil {
-									return "", err
+									return "", errorspkg.NewStrconvError(method, j, err)
 								}
 
 								d, err := strconv.Atoi(dateParse.Format("1"))
 								if err != nil {
-									return "", err
+									return "", errorspkg.NewStrconvError(method, dateParse.Format("1"), err)
 								}
 								if d == c && now.Compare(dateParse) == -1 {
 									return dateParse.Format("20060102"), nil
@@ -239,24 +244,24 @@ func NextDate(now time.Time, date, repeat string) (string, error) {
 					}
 					a, err := strconv.Atoi(i)
 					if err != nil {
-						return "", err
+						return "", errorspkg.NewStrconvError(method, i, err)
 					}
 
 					b, err := strconv.Atoi(dateParse.Format("2"))
 					if err != nil {
-						return "", err
+						return "", errorspkg.NewStrconvError(method, dateParse.Format("2"), err)
 					}
 
 					if a == b {
 						for _, j := range months {
 							c, err := strconv.Atoi(j)
 							if err != nil {
-								return "", err
+								return "", errorspkg.NewStrconvError(method, j, err)
 							}
 
 							d, err := strconv.Atoi(dateParse.Format("1"))
 							if err != nil {
-								return "", err
+								return "", errorspkg.NewStrconvError(method, dateParse.Format("1"), err)
 							}
 
 							if d == c && now.Compare(dateParse) == -1 {
@@ -269,7 +274,7 @@ func NextDate(now time.Time, date, repeat string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("uncorrect date")
+	return "", fmt.Errorf("incorrect date")
 }
 
 func CheckTask(task *models.Task) (*models.Task, error) {
@@ -281,7 +286,7 @@ func CheckTask(task *models.Task) (*models.Task, error) {
 	} else {
 		t, err := time.Parse("20060102", task.Date)
 		if err != nil {
-			return task, err
+			return task, fmt.Errorf(fmt.Sprintf("failed to parse task.Date to time: error=%v", err))
 		}
 
 		now := time.Now().Format("20060102")

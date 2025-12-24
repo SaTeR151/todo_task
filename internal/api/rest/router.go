@@ -12,7 +12,6 @@ import (
 const (
 	webDir       = "web"
 	PathAPI      = "/api"
-	PathNextDate = "/nextdate"
 	PathTasks    = "/tasks"
 	PathTask     = "/task"
 	PathTaskDone = "/task/done"
@@ -21,7 +20,6 @@ const (
 
 type (
 	ITodoTaskHandlers interface {
-		GetNextDate(res http.ResponseWriter, req *http.Request)
 		PostTask(res http.ResponseWriter, req *http.Request)
 		ListTask(res http.ResponseWriter, req *http.Request)
 		GetTask(res http.ResponseWriter, req *http.Request)
@@ -29,13 +27,17 @@ type (
 		PostTaskDone(res http.ResponseWriter, req *http.Request)
 		DeleteTask(res http.ResponseWriter, req *http.Request)
 		Sign(res http.ResponseWriter, req *http.Request)
-		Auth(n http.HandlerFunc) http.HandlerFunc
+	}
+
+	IInternalMW interface {
+		Auth(n http.Handler) http.Handler
 	}
 )
 
 type (
 	RouterDependencies struct {
-		Handlers ITodoTaskHandlers
+		Handlers   ITodoTaskHandlers
+		InternalMW IInternalMW
 	}
 )
 
@@ -45,21 +47,26 @@ func NewRouter(d *RouterDependencies) (http.Handler, error) {
 	}
 
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	r.Use(
+		middleware.Logger,
+		middleware.Recoverer,
+	)
 
 	// --- API ---
-	r.Route(PathAPI, func(r chi.Router) {
-		r.Get(PathNextDate, d.Handlers.GetNextDate)
-		r.Get(PathTasks, d.Handlers.Auth(d.Handlers.ListTask))
-		r.Get(PathTask, d.Handlers.Auth(d.Handlers.GetTask))
+	apiR := r.Route(PathAPI, func(r chi.Router) {})
 
-		r.Post(PathTask, d.Handlers.Auth(d.Handlers.PostTask))
-		r.Post(PathTaskDone, d.Handlers.Auth(d.Handlers.PostTaskDone))
-		r.Post(PathSignin, d.Handlers.Sign)
+	apiR.Post(PathSignin, d.Handlers.Sign)
 
-		r.Put(PathTask, d.Handlers.Auth(d.Handlers.PutTask))
-		r.Delete(PathTask, d.Handlers.Auth(d.Handlers.DeleteTask))
-	})
+	authR := apiR.With(d.InternalMW.Auth)
+
+	authR.Get(PathTasks, d.Handlers.ListTask)
+	authR.Get(PathTask, d.Handlers.GetTask)
+
+	authR.Post(PathTask, d.Handlers.PostTask)
+	authR.Post(PathTaskDone, d.Handlers.PostTaskDone)
+
+	authR.Put(PathTask, d.Handlers.PutTask)
+	authR.Delete(PathTask, d.Handlers.DeleteTask)
 
 	r.Handle("/*", http.FileServer(http.Dir(webDir)))
 

@@ -1,25 +1,23 @@
 package handlers
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
-	"log"
+	"errors"
 	"log/slog"
 	"net/http"
-	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sater-151/todo-list/internal/models"
 	"github.com/sater-151/todo-list/internal/pkg/errorspkg"
 	"github.com/sater-151/todo-list/internal/pkg/validate"
-	"github.com/sater-151/todo-list/internal/utils/datevalidating"
+	"github.com/sater-151/todo-list/internal/utils/selectconfig"
 )
 
 type (
 	ITodoTaskUsecase interface {
-		AddTask(ctx context.Context, task *models.Task) (models.ID, error)
+		AddTask(ctx context.Context, task *models.Task) (string, error)
 		GetListTask(ctx context.Context, selectConfig *models.SelectConfig) ([]models.Task, error)
 		TaskDone(ctx context.Context, selectConfig *models.SelectConfig) error
 		UpdateTask(ctx context.Context, task *models.Task) error
@@ -49,280 +47,203 @@ func NewTodoTaskHandlers(d *TodoTaskServerDependencies) (*TodoTaskServer, error)
 	}, nil
 }
 
-func ErrorHandler(res http.ResponseWriter, err error, status int) {
-	var errJS models.Error
-	errJS.Err = err.Error()
-	res.WriteHeader(status)
-	if err := json.NewEncoder(res).Encode(errJS); err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusInternalServerError)
-		return
-	}
-}
-
-func CreateDefaultSelectConfig() models.SelectConfig {
-	var selectConfig models.SelectConfig
-	selectConfig.Limit = "20"
-	selectConfig.Sort = "date"
-	selectConfig.Table = "scheduler"
-
-	return selectConfig
-}
-
-func (s *TodoTaskServer) GetNextDate(res http.ResponseWriter, req *http.Request) {
-	slog.Debug("1")
-	res.Header().Set("Content-type", "application/json; charset=UTF-8")
-	now := req.FormValue("now")
-	nowTime, err := time.Parse("20060102", now)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-	date := req.FormValue("date")
-	repeat := req.FormValue("repeat")
-	nextDate, err := datevalidating.NextDate(nowTime, date, repeat)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-	res.WriteHeader(http.StatusOK)
-	if _, err := res.Write([]byte(nextDate)); err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusInternalServerError)
-		return
-	}
-}
-
 func (s *TodoTaskServer) PostTask(res http.ResponseWriter, req *http.Request) {
-	slog.Debug("2")
-
 	res.Header().Set("Content-type", "application/json; charset=UTF-8")
+
 	var task models.Task
-	var buf bytes.Buffer
-	var idJS models.ID
-	_, err := buf.ReadFrom(req.Body)
-	if err != nil {
-		log.Println(err.Error())
-		http.Error(res, err.Error(), http.StatusBadRequest)
+	if err := sonic.ConfigDefault.NewDecoder(req.Body).Decode(&task); err != nil {
+		slog.Warn(err.Error())
+		http.Error(res, errorspkg.ErrBadRequest.Error(), http.StatusBadRequest)
 		return
 	}
-	err = json.Unmarshal(buf.Bytes(), &task)
+
+	id, err := s.todoTaskUsecase.AddTask(req.Context(), &task)
 	if err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusBadRequest)
+		if errors.Is(err, errorspkg.ErrBadRequest) {
+			http.Error(res, errorspkg.ErrBadRequest.Error(), http.StatusBadRequest)
+		} else {
+			http.Error(res, errorspkg.ErrInternalError.Error(), http.StatusInternalServerError)
+		}
+
 		return
 	}
-	idJS, err = s.todoTaskUsecase.AddTask(req.Context(), &task)
-	if err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusBadRequest)
-		return
-	}
+
 	res.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(res).Encode(idJS); err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusInternalServerError)
+	if err := sonic.ConfigDefault.NewEncoder(res).Encode(id); err != nil {
+		slog.Error(err.Error())
+		http.Error(res, errorspkg.ErrInternalError.Error(), http.StatusBadRequest)
 		return
 	}
 
 }
 
 func (s *TodoTaskServer) ListTask(res http.ResponseWriter, req *http.Request) {
-	slog.Debug("3")
-
 	res.Header().Set("Content-type", "application/json; charset=UTF-8")
-	var err error
+
 	search := req.FormValue("search")
-	selectConfig := CreateDefaultSelectConfig()
+	selectConfig := selectconfig.Default()
 	if search != "" {
 		selectConfig.Search = search
 	}
-	tasks, err := s.todoTaskUsecase.GetListTask(req.Context(), &selectConfig)
+
+	tasks, err := s.todoTaskUsecase.GetListTask(req.Context(), selectConfig)
 	if err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusBadRequest)
+		if errors.Is(err, errorspkg.ErrBadRequest) {
+			http.Error(res, errorspkg.ErrBadRequest.Error(), http.StatusBadRequest)
+		} else {
+			http.Error(res, errorspkg.ErrInternalError.Error(), http.StatusInternalServerError)
+		}
+
 		return
 	}
-	listTask := models.ListTask{Tasks: tasks}
+
 	res.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(res).Encode(listTask); err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusInternalServerError)
+	if err := sonic.ConfigDefault.NewEncoder(res).Encode(models.ListTask{Tasks: tasks}); err != nil {
+		slog.Error(err.Error())
+		http.Error(res, errorspkg.ErrInternalError.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
 func (s *TodoTaskServer) GetTask(res http.ResponseWriter, req *http.Request) {
-	slog.Debug("4")
-
 	res.Header().Set("Content-type", "application/json; charset=UTF-8")
 	id := req.FormValue("id")
 	if id == "" {
-		log.Println("id required")
-		ErrorHandler(res, fmt.Errorf("id required"), http.StatusBadRequest)
+		slog.Warn("id required")
+		http.Error(res, errorspkg.ErrBadRequest.Error(), http.StatusBadRequest)
 		return
 	}
-	selectConfig := CreateDefaultSelectConfig()
+
+	selectConfig := selectconfig.Default()
 	selectConfig.ID = id
-	tasks, err := s.todoTaskUsecase.Select(req.Context(), &selectConfig)
+
+	tasks, err := s.todoTaskUsecase.Select(req.Context(), selectConfig)
 	if err != nil {
-		ErrorHandler(res, err, http.StatusBadRequest)
+		if errors.Is(err, errorspkg.ErrBadRequest) {
+			http.Error(res, errorspkg.ErrBadRequest.Error(), http.StatusBadRequest)
+		} else {
+			http.Error(res, errorspkg.ErrInternalError.Error(), http.StatusInternalServerError)
+		}
+
 		return
 	}
 
 	if len(tasks) == 0 {
-		ErrorHandler(res, fmt.Errorf("not task"), http.StatusBadRequest)
+		http.Error(res, "task not found", http.StatusBadRequest)
 		return
 	}
-	task := tasks[0]
+
 	res.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(res).Encode(task); err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusInternalServerError)
+	if err := json.NewEncoder(res).Encode(tasks[0]); err != nil {
+		slog.Error(err.Error())
+		http.Error(res, errorspkg.ErrInternalError.Error(), http.StatusInternalServerError)
 		return
 	}
 
 }
 
 func (s *TodoTaskServer) PutTask(res http.ResponseWriter, req *http.Request) {
-	slog.Debug("5")
-
 	res.Header().Set("Content-type", "application/json; charset=UTF-8")
+
 	var task models.Task
-	var buf bytes.Buffer
-	_, err := buf.ReadFrom(req.Body)
-	if err != nil {
-		log.Println(err.Error())
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-	err = json.Unmarshal(buf.Bytes(), &task)
-	if err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusBadRequest)
+	if err := sonic.ConfigDefault.NewDecoder(req.Body).Decode(&task); err != nil {
+		slog.Warn(err.Error())
+		http.Error(res, errorspkg.ErrBadRequest.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = s.todoTaskUsecase.UpdateTask(req.Context(), &task)
+	err := s.todoTaskUsecase.UpdateTask(req.Context(), &task)
 	if err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusBadRequest)
+		if errors.Is(err, errorspkg.ErrBadRequest) {
+			http.Error(res, errorspkg.ErrBadRequest.Error(), http.StatusBadRequest)
+		} else {
+			http.Error(res, errorspkg.ErrInternalError.Error(), http.StatusInternalServerError)
+		}
+
 		return
 	}
+
 	res.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(res).Encode(struct{}{}); err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusInternalServerError)
-		return
-	}
 }
 
 func (s *TodoTaskServer) PostTaskDone(res http.ResponseWriter, req *http.Request) {
-	slog.Debug("6")
-
 	res.Header().Set("Content-type", "application/json; charset=UTF-8")
+
 	id := req.FormValue("id")
-	selectConfig := CreateDefaultSelectConfig()
+	selectConfig := selectconfig.Default()
+	if id == "" {
+		slog.Warn("id required")
+		http.Error(res, errorspkg.ErrBadRequest.Error(), http.StatusBadRequest)
+		return
+	}
+
 	selectConfig.ID = id
 
-	err := s.todoTaskUsecase.TaskDone(req.Context(), &selectConfig)
+	err := s.todoTaskUsecase.TaskDone(req.Context(), selectConfig)
 	if err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusBadRequest)
+		if errors.Is(err, errorspkg.ErrBadRequest) {
+			http.Error(res, errorspkg.ErrBadRequest.Error(), http.StatusBadRequest)
+		} else {
+			http.Error(res, errorspkg.ErrInternalError.Error(), http.StatusInternalServerError)
+		}
+
 		return
 	}
 
 	res.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(res).Encode(struct{}{}); err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusInternalServerError)
-		return
-	}
-
 }
 
 func (s *TodoTaskServer) DeleteTask(res http.ResponseWriter, req *http.Request) {
-	slog.Debug("7")
-
 	res.Header().Set("Content-type", "application/json; charset=UTF-8")
 	id := req.FormValue("id")
 	if id == "" {
-		log.Println("id required")
-		ErrorHandler(res, fmt.Errorf("id required"), http.StatusBadRequest)
+		slog.Warn("id required")
+		http.Error(res, errorspkg.ErrBadRequest.Error(), http.StatusBadRequest)
 		return
 	}
+
 	err := s.todoTaskUsecase.DeleteTask(req.Context(), id)
 	if err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusBadRequest)
+		if errors.Is(err, errorspkg.ErrBadRequest) {
+			http.Error(res, errorspkg.ErrBadRequest.Error(), http.StatusBadRequest)
+		} else {
+			http.Error(res, errorspkg.ErrInternalError.Error(), http.StatusInternalServerError)
+		}
+
 		return
 	}
+
 	res.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(res).Encode(struct{}{}); err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusInternalServerError)
-		return
-	}
 }
 
 func (s *TodoTaskServer) Sign(res http.ResponseWriter, req *http.Request) {
-	slog.Debug("8")
-
 	res.Header().Set("Content-type", "application/json; charset=UTF-8")
 	passTrue := s.password
-	var passJS models.PasswordJS
-	var token models.JWTToken
-	err := json.NewDecoder(req.Body).Decode(&passJS)
-	if err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusBadRequest)
-		return
-	}
-	if passTrue != passJS.Pass {
-		log.Println("wrong password")
-		ErrorHandler(res, fmt.Errorf("wrong password"), http.StatusBadRequest)
-		return
-	}
-	jwtToken := jwt.New(jwt.SigningMethodHS256)
-	token.Token, err = jwtToken.SignedString([]byte(passTrue))
-	if err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusBadRequest)
-		return
-	}
-	res.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(res).Encode(token); err != nil {
-		log.Println(err.Error())
-		ErrorHandler(res, err, http.StatusInternalServerError)
-		return
-	}
-}
 
-func (s *TodoTaskServer) Auth(next http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		pass := s.password
-		if pass != "" {
-			cookie, err := req.Cookie("token")
-			if err != nil {
-				log.Println(err.Error())
-				ErrorHandler(res, err, http.StatusUnauthorized)
-				return
-			}
-			jwtCookie := cookie.Value
-			jwtToken, err := jwt.Parse(jwtCookie, func(_ *jwt.Token) (interface{}, error) {
-				return []byte(pass), nil
-			})
-			if err != nil {
-				log.Println(err.Error())
-				ErrorHandler(res, err, http.StatusUnauthorized)
-				return
-			}
-			if !jwtToken.Valid {
-				log.Println("token is invalid")
-				ErrorHandler(res, fmt.Errorf("token is invalid"), http.StatusUnauthorized)
-				return
-			}
-		}
-		next(res, req)
-	})
+	var passJS models.PasswordJS
+	if err := sonic.ConfigDefault.NewDecoder(req.Body).Decode(&passJS); err != nil {
+		slog.Warn("password required")
+		http.Error(res, "password required", http.StatusBadRequest)
+		return
+	}
+
+	if passTrue != passJS.Pass {
+		slog.Warn("wrong password")
+		http.Error(res, "wrong password", http.StatusBadRequest)
+		return
+	}
+
+	token, err := jwt.New(jwt.SigningMethodHS256).SignedString([]byte(passTrue))
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(res, errorspkg.ErrBadRequest.Error(), http.StatusBadRequest)
+		return
+	}
+
+	res.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(res).Encode(models.JWTToken{Token: token}); err != nil {
+		slog.Error(err.Error())
+		http.Error(res, errorspkg.ErrInternalError.Error(), http.StatusInternalServerError)
+		return
+	}
 }
