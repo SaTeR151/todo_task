@@ -32,3 +32,23 @@ func NewValidationError(constructor string, obj any, validationErr error) error 
 		ErrorMsg:    validationErr,
 	}
 }
+
+type RepoFailedError struct {
+	Method    string
+	Operation string
+	What      string
+	ErrorMsg  error
+}
+
+func (e RepoFailedError) Error() string {
+	return fmt.Sprintf("repo method [%s] failed to %s %s: %v", e.Method, e.Operation, e.What, e.ErrorMsg)
+}
+
+func NewRepoFailedError(method, operation, what string, err error) error {
+	return RepoFailedError{
+		Method:    method,
+		Operation: operation,
+		What:      what,
+		ErrorMsg:  err,
+	}
+}
