@@ -1,0 +1,31 @@
+.gitlab
+
+# Configs
+config.yaml
+credentials_new.yaml
+credentials.yaml
+
+# Dockerfile
+Dockerfile
+
+# IDE
+.idea
+.vscode
+
+#binary files
+/bin
+
+# junk
+*.html
+*.out
+
+# logs
+*.log
+
+vendor
+
+*.exe
+
+main
+
+portal

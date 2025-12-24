@@ -9,7 +9,7 @@ type Task struct {
 }
 
 type SelectConfig struct {
-	Id       string
+	ID       string
 	Search   string
 	Date     string
 	Limit    string

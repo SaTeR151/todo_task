@@ -13,17 +13,17 @@ type TodoTaskRepo struct {
 	pool *pgxpool.Pool
 }
 
-func NewTodoTaskRepo(pool *pgxpool.Pool) *TodoTaskRepo {
+func NewTodoTaskRepo(pool *pgxpool.Pool) (*TodoTaskRepo, error) {
+	if pool == nil {
+		return nil, fmt.Errorf("postgres.NewTodoTaskRepo: error = pool is nil")
+	}
+
 	return &TodoTaskRepo{
 		pool: pool,
-	}
+	}, nil
 }
 
-func (r *TodoTaskRepo) InsertTask(ctx context.Context, task models.Task) (string, error) {
-	fmt.Println(task.Repeat)
-	fmt.Println(task.Repeat == "")
-	fmt.Println(task.Repeat == " ")
-
+func (r *TodoTaskRepo) InsertTask(ctx context.Context, task *models.Task) (string, error) {
 	taskUUID, err := uuid.NewV7()
 	if err != nil {
 		taskUUID = uuid.New()
@@ -48,7 +48,7 @@ func (r *TodoTaskRepo) InsertTask(ctx context.Context, task models.Task) (string
 	return taskUUID.String(), nil
 }
 
-func (r *TodoTaskRepo) UpdateTask(ctx context.Context, task models.Task) error {
+func (r *TodoTaskRepo) UpdateTask(ctx context.Context, task *models.Task) error {
 	res, err := r.pool.Exec(ctx, "UPDATE scheduler SET date = $1, title = $2, comment = $3, repeat = $4 WHERE uuid = $5",
 		task.Date,
 		task.Title,
@@ -66,18 +66,19 @@ func (r *TodoTaskRepo) UpdateTask(ctx context.Context, task models.Task) error {
 	return nil
 }
 
-func (r *TodoTaskRepo) DeleteTask(ctx context.Context, uuid string) error {
-	_, err := r.pool.Exec(ctx, "DELETE FROM scheduler WHERE uuid = $1", uuid)
+func (r *TodoTaskRepo) DeleteTask(ctx context.Context, taskUUID string) error {
+	_, err := r.pool.Exec(ctx, "DELETE FROM scheduler WHERE uuid = $1", taskUUID)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
-func (r *TodoTaskRepo) Select(ctx context.Context, selectConfig models.SelectConfig) ([]models.Task, error) {
+func (r *TodoTaskRepo) Select(ctx context.Context, selectConfig *models.SelectConfig) ([]models.Task, error) {
 	listTask := []models.Task{}
 	row := fmt.Sprintf("SELECT * FROM %s", selectConfig.Table)
-	if selectConfig.Search != "" || selectConfig.Date != "" || selectConfig.Id != "" {
+	if selectConfig.Search != "" || selectConfig.Date != "" || selectConfig.ID != "" {
 		row += " WHERE"
 	}
 	if selectConfig.Search != "" {
@@ -86,8 +87,8 @@ func (r *TodoTaskRepo) Select(ctx context.Context, selectConfig models.SelectCon
 	if selectConfig.Date != "" {
 		row += fmt.Sprintf(" date = '%s'", selectConfig.Date)
 	}
-	if selectConfig.Id != "" {
-		row += fmt.Sprintf(" uuid = '%s'", selectConfig.Id)
+	if selectConfig.ID != "" {
+		row += fmt.Sprintf(" uuid = '%s'", selectConfig.ID)
 	}
 	if selectConfig.Sort != "" {
 		row += fmt.Sprintf(" ORDER BY %s %s", selectConfig.Sort, selectConfig.TypeSort)

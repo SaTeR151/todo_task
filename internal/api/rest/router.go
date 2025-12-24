@@ -11,7 +11,7 @@ import (
 
 const (
 	webDir       = "web"
-	PathApi      = "/api"
+	PathAPI      = "/api"
 	PathNextDate = "/nextdate"
 	PathTasks    = "/tasks"
 	PathTask     = "/task"
@@ -48,7 +48,7 @@ func NewRouter(d *RouterDependencies) (http.Handler, error) {
 	r.Use(middleware.Logger)
 
 	// --- API ---
-	r.Route(PathApi, func(r chi.Router) {
+	r.Route(PathAPI, func(r chi.Router) {
 		r.Get(PathNextDate, d.Handlers.GetNextDate)
 		r.Get(PathTasks, d.Handlers.Auth(d.Handlers.ListTask))
 		r.Get(PathTask, d.Handlers.Auth(d.Handlers.GetTask))

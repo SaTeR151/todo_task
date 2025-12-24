@@ -8,15 +8,15 @@ import (
 	"github.com/sater-151/todo-list/internal/models"
 	"github.com/sater-151/todo-list/internal/pkg/errorspkg"
 	"github.com/sater-151/todo-list/internal/pkg/validate"
-	"github.com/sater-151/todo-list/internal/utils"
+	"github.com/sater-151/todo-list/internal/utils/datevalidating"
 )
 
 type (
 	ITodoTaskRepo interface {
-		InsertTask(ctx context.Context, task models.Task) (string, error)
-		UpdateTask(ctx context.Context, task models.Task) error
+		InsertTask(ctx context.Context, task *models.Task) (string, error)
+		UpdateTask(ctx context.Context, task *models.Task) error
 		DeleteTask(ctx context.Context, uuid string) error
-		Select(ctx context.Context, selectConfig models.SelectConfig) ([]models.Task, error)
+		Select(ctx context.Context, selectConfig *models.SelectConfig) ([]models.Task, error)
 	}
 )
 
@@ -40,57 +40,73 @@ func NewTodoTask(d *TodoTaskDependencies) (*TodoTask, error) {
 	}, nil
 }
 
-func (s *TodoTask) AddTask(ctx context.Context, task models.Task) (models.ID, error) {
-	var Id models.ID
+func (s *TodoTask) AddTask(ctx context.Context, task *models.Task) (models.ID, error) {
+	var id models.ID
 	var err error
-	task, err = utils.CheckTask(task)
+	task, err = datevalidating.CheckTask(task)
 	if err != nil {
-		return Id, err
+		return id, err
 	}
-	Id.ID, err = s.todoTaskRepo.InsertTask(ctx, task)
+	id.ID, err = s.todoTaskRepo.InsertTask(ctx, task)
 	if err != nil {
-		return Id, err
+		return id, err
 	}
-	return Id, nil
+
+	return id, nil
 }
 
-func (s *TodoTask) UpdateTask(ctx context.Context, task models.Task) error {
-	task, err := utils.CheckTask(task)
+func (s *TodoTask) UpdateTask(ctx context.Context, task *models.Task) error {
+	task, err := datevalidating.CheckTask(task)
 	if err != nil {
 		return err
 	}
+
 	err = s.todoTaskRepo.UpdateTask(ctx, task)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
-func (s *TodoTask) TaskDone(ctx context.Context, selectConfig models.SelectConfig) error {
+func (s *TodoTask) DeleteTask(ctx context.Context, uuid string) error {
+	return s.todoTaskRepo.DeleteTask(ctx, uuid)
+}
+
+func (s *TodoTask) Select(ctx context.Context, selectConfig *models.SelectConfig) ([]models.Task, error) {
+	return s.todoTaskRepo.Select(ctx, selectConfig)
+}
+
+func (s *TodoTask) TaskDone(ctx context.Context, selectConfig *models.SelectConfig) error {
 	tasks, err := s.todoTaskRepo.Select(ctx, selectConfig)
 	if err != nil {
 		return err
 	}
+
 	task := tasks[0]
 	if task.Repeat == "" {
-		err = s.todoTaskRepo.DeleteTask(ctx, selectConfig.Id)
+		err = s.todoTaskRepo.DeleteTask(ctx, selectConfig.ID)
 		if err != nil {
 			return err
 		}
+
 		return nil
 	}
-	task.Date, err = utils.NextDate(time.Now(), task.Date, task.Repeat)
+
+	task.Date, err = datevalidating.NextDate(time.Now(), task.Date, task.Repeat)
 	if err != nil {
 		return err
 	}
-	err = s.todoTaskRepo.UpdateTask(ctx, task)
+
+	err = s.todoTaskRepo.UpdateTask(ctx, &task)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
-func (s *TodoTask) GetListTask(ctx context.Context, selectConfig models.SelectConfig) ([]models.Task, error) {
+func (s *TodoTask) GetListTask(ctx context.Context, selectConfig *models.SelectConfig) ([]models.Task, error) {
 	if selectConfig.Search != "" {
 		date := strings.Split(selectConfig.Search, ".")
 		if len(date) == 3 {

@@ -14,33 +14,27 @@ import (
 	"github.com/sater-151/todo-list/internal/models"
 	"github.com/sater-151/todo-list/internal/pkg/errorspkg"
 	"github.com/sater-151/todo-list/internal/pkg/validate"
-	"github.com/sater-151/todo-list/internal/utils"
+	"github.com/sater-151/todo-list/internal/utils/datevalidating"
 )
 
 type (
 	ITodoTaskUsecase interface {
-		AddTask(ctx context.Context, task models.Task) (models.ID, error)
-		GetListTask(ctx context.Context, selectConfig models.SelectConfig) ([]models.Task, error)
-		TaskDone(ctx context.Context, selectConfig models.SelectConfig) error
-	}
-
-	ITodoTaskRepo interface {
-		InsertTask(ctx context.Context, task models.Task) (string, error)
-		UpdateTask(ctx context.Context, task models.Task) error
+		AddTask(ctx context.Context, task *models.Task) (models.ID, error)
+		GetListTask(ctx context.Context, selectConfig *models.SelectConfig) ([]models.Task, error)
+		TaskDone(ctx context.Context, selectConfig *models.SelectConfig) error
+		UpdateTask(ctx context.Context, task *models.Task) error
 		DeleteTask(ctx context.Context, uuid string) error
-		Select(ctx context.Context, selectConfig models.SelectConfig) ([]models.Task, error)
+		Select(ctx context.Context, selectConfig *models.SelectConfig) ([]models.Task, error)
 	}
 )
 
 type TodoTaskServerDependencies struct {
 	TodoTaskUsecase ITodoTaskUsecase `validate:"required"`
-	TodoTaskRepo    ITodoTaskRepo    `validate:"required"`
 	Password        string           `validate:"required"`
 }
 
 type TodoTaskServer struct {
 	todoTaskUsecase ITodoTaskUsecase
-	todoTaskRepo    ITodoTaskRepo
 	password        string
 }
 
@@ -51,7 +45,6 @@ func NewTodoTaskHandlers(d *TodoTaskServerDependencies) (*TodoTaskServer, error)
 
 	return &TodoTaskServer{
 		todoTaskUsecase: d.TodoTaskUsecase,
-		todoTaskRepo:    d.TodoTaskRepo,
 		password:        d.Password,
 	}, nil
 }
@@ -60,7 +53,11 @@ func ErrorHandler(res http.ResponseWriter, err error, status int) {
 	var errJS models.Error
 	errJS.Err = err.Error()
 	res.WriteHeader(status)
-	json.NewEncoder(res).Encode(errJS)
+	if err := json.NewEncoder(res).Encode(errJS); err != nil {
+		log.Println(err.Error())
+		ErrorHandler(res, err, http.StatusInternalServerError)
+		return
+	}
 }
 
 func CreateDefaultSelectConfig() models.SelectConfig {
@@ -68,6 +65,7 @@ func CreateDefaultSelectConfig() models.SelectConfig {
 	selectConfig.Limit = "20"
 	selectConfig.Sort = "date"
 	selectConfig.Table = "scheduler"
+
 	return selectConfig
 }
 
@@ -82,13 +80,17 @@ func (s *TodoTaskServer) GetNextDate(res http.ResponseWriter, req *http.Request)
 	}
 	date := req.FormValue("date")
 	repeat := req.FormValue("repeat")
-	nextDate, err := utils.NextDate(nowTime, date, repeat)
+	nextDate, err := datevalidating.NextDate(nowTime, date, repeat)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 	res.WriteHeader(http.StatusOK)
-	res.Write([]byte(nextDate))
+	if _, err := res.Write([]byte(nextDate)); err != nil {
+		log.Println(err.Error())
+		ErrorHandler(res, err, http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *TodoTaskServer) PostTask(res http.ResponseWriter, req *http.Request) {
@@ -110,14 +112,18 @@ func (s *TodoTaskServer) PostTask(res http.ResponseWriter, req *http.Request) {
 		ErrorHandler(res, err, http.StatusBadRequest)
 		return
 	}
-	idJS, err = s.todoTaskUsecase.AddTask(req.Context(), task)
+	idJS, err = s.todoTaskUsecase.AddTask(req.Context(), &task)
 	if err != nil {
 		log.Println(err.Error())
 		ErrorHandler(res, err, http.StatusBadRequest)
 		return
 	}
 	res.WriteHeader(http.StatusOK)
-	json.NewEncoder(res).Encode(idJS)
+	if err := json.NewEncoder(res).Encode(idJS); err != nil {
+		log.Println(err.Error())
+		ErrorHandler(res, err, http.StatusInternalServerError)
+		return
+	}
 
 }
 
@@ -131,7 +137,7 @@ func (s *TodoTaskServer) ListTask(res http.ResponseWriter, req *http.Request) {
 	if search != "" {
 		selectConfig.Search = search
 	}
-	tasks, err := s.todoTaskUsecase.GetListTask(req.Context(), selectConfig)
+	tasks, err := s.todoTaskUsecase.GetListTask(req.Context(), &selectConfig)
 	if err != nil {
 		log.Println(err.Error())
 		ErrorHandler(res, err, http.StatusBadRequest)
@@ -139,7 +145,11 @@ func (s *TodoTaskServer) ListTask(res http.ResponseWriter, req *http.Request) {
 	}
 	listTask := models.ListTask{Tasks: tasks}
 	res.WriteHeader(http.StatusOK)
-	json.NewEncoder(res).Encode(listTask)
+	if err := json.NewEncoder(res).Encode(listTask); err != nil {
+		log.Println(err.Error())
+		ErrorHandler(res, err, http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *TodoTaskServer) GetTask(res http.ResponseWriter, req *http.Request) {
@@ -153,8 +163,8 @@ func (s *TodoTaskServer) GetTask(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	selectConfig := CreateDefaultSelectConfig()
-	selectConfig.Id = id
-	tasks, err := s.todoTaskRepo.Select(req.Context(), selectConfig)
+	selectConfig.ID = id
+	tasks, err := s.todoTaskUsecase.Select(req.Context(), &selectConfig)
 	if err != nil {
 		ErrorHandler(res, err, http.StatusBadRequest)
 		return
@@ -166,7 +176,11 @@ func (s *TodoTaskServer) GetTask(res http.ResponseWriter, req *http.Request) {
 	}
 	task := tasks[0]
 	res.WriteHeader(http.StatusOK)
-	json.NewEncoder(res).Encode(task)
+	if err := json.NewEncoder(res).Encode(task); err != nil {
+		log.Println(err.Error())
+		ErrorHandler(res, err, http.StatusInternalServerError)
+		return
+	}
 
 }
 
@@ -189,14 +203,18 @@ func (s *TodoTaskServer) PutTask(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = s.todoTaskRepo.UpdateTask(req.Context(), task)
+	err = s.todoTaskUsecase.UpdateTask(req.Context(), &task)
 	if err != nil {
 		log.Println(err.Error())
 		ErrorHandler(res, err, http.StatusBadRequest)
 		return
 	}
 	res.WriteHeader(http.StatusOK)
-	json.NewEncoder(res).Encode(struct{}{})
+	if err := json.NewEncoder(res).Encode(struct{}{}); err != nil {
+		log.Println(err.Error())
+		ErrorHandler(res, err, http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *TodoTaskServer) PostTaskDone(res http.ResponseWriter, req *http.Request) {
@@ -205,15 +223,21 @@ func (s *TodoTaskServer) PostTaskDone(res http.ResponseWriter, req *http.Request
 	res.Header().Set("Content-type", "application/json; charset=UTF-8")
 	id := req.FormValue("id")
 	selectConfig := CreateDefaultSelectConfig()
-	selectConfig.Id = id
-	err := s.todoTaskUsecase.TaskDone(req.Context(), selectConfig)
+	selectConfig.ID = id
+
+	err := s.todoTaskUsecase.TaskDone(req.Context(), &selectConfig)
 	if err != nil {
 		log.Println(err.Error())
 		ErrorHandler(res, err, http.StatusBadRequest)
 		return
 	}
+
 	res.WriteHeader(http.StatusOK)
-	json.NewEncoder(res).Encode(struct{}{})
+	if err := json.NewEncoder(res).Encode(struct{}{}); err != nil {
+		log.Println(err.Error())
+		ErrorHandler(res, err, http.StatusInternalServerError)
+		return
+	}
 
 }
 
@@ -227,14 +251,18 @@ func (s *TodoTaskServer) DeleteTask(res http.ResponseWriter, req *http.Request) 
 		ErrorHandler(res, fmt.Errorf("id required"), http.StatusBadRequest)
 		return
 	}
-	err := s.todoTaskRepo.DeleteTask(req.Context(), id)
+	err := s.todoTaskUsecase.DeleteTask(req.Context(), id)
 	if err != nil {
 		log.Println(err.Error())
 		ErrorHandler(res, err, http.StatusBadRequest)
 		return
 	}
 	res.WriteHeader(http.StatusOK)
-	json.NewEncoder(res).Encode(struct{}{})
+	if err := json.NewEncoder(res).Encode(struct{}{}); err != nil {
+		log.Println(err.Error())
+		ErrorHandler(res, err, http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *TodoTaskServer) Sign(res http.ResponseWriter, req *http.Request) {
@@ -263,13 +291,17 @@ func (s *TodoTaskServer) Sign(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	res.WriteHeader(http.StatusOK)
-	json.NewEncoder(res).Encode(token)
+	if err := json.NewEncoder(res).Encode(token); err != nil {
+		log.Println(err.Error())
+		ErrorHandler(res, err, http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *TodoTaskServer) Auth(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		pass := s.password
-		if len(pass) > 0 {
+		if pass != "" {
 			cookie, err := req.Cookie("token")
 			if err != nil {
 				log.Println(err.Error())
@@ -277,7 +309,7 @@ func (s *TodoTaskServer) Auth(next http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 			jwtCookie := cookie.Value
-			jwtToken, err := jwt.Parse(jwtCookie, func(t *jwt.Token) (interface{}, error) {
+			jwtToken, err := jwt.Parse(jwtCookie, func(_ *jwt.Token) (interface{}, error) {
 				return []byte(pass), nil
 			})
 			if err != nil {

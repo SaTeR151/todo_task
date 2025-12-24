@@ -10,10 +10,10 @@ import (
 )
 
 type ITodoTask interface {
-	InsertTask(ctx context.Context, task models.Task) (string, error)
-	UpdateTask(ctx context.Context, task models.Task) error
+	InsertTask(ctx context.Context, task *models.Task) (string, error)
+	UpdateTask(ctx context.Context, task *models.Task) error
 	DeleteTask(ctx context.Context, uuid string) error
-	Select(ctx context.Context, selectConfig models.SelectConfig) ([]models.Task, error)
+	Select(ctx context.Context, selectConfig *models.SelectConfig) ([]models.Task, error)
 }
 
 type Repository struct {

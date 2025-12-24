@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	_ "github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/jackc/pgx/v5/stdlib" // драйвер для postgres
 	"github.com/pressly/goose/v3"
 	"github.com/sater-151/todo-list/internal/credentials"
 	"github.com/sater-151/todo-list/internal/repository"
@@ -56,7 +56,10 @@ func NewRepo(ctx context.Context, c credentials.Postgres) (*Repository, error) {
 }
 
 func initRepoRegistry(postgresConnect *pgxpool.Pool) (*Repository, error) {
-	todoTaskRepo := postgres.NewTodoTaskRepo(postgresConnect)
+	todoTaskRepo, err := postgres.NewTodoTaskRepo(postgresConnect)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Repository{
 		TodoTask: todoTaskRepo,
