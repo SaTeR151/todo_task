@@ -1,0 +1,102 @@
+package column
+
+import (
+	"context"
+
+	"github.com/sater-151/todo-list/internal/entity"
+	"github.com/sater-151/todo-list/internal/repository/postgres"
+	"github.com/sater-151/todo-list/pkg/utils"
+)
+
+type ColumnService struct {
+	repo *postgres.Repository
+}
+
+func (s *ColumnService) Get(ctx context.Context, opts entity.GetColumnsOpts) (columns entity.Columns, err error) {
+
+	columns, err = s.repo.Column.GetColumns(ctx, opts)
+	if err != nil {
+		return
+	}
+
+	if len(columns) == 0 {
+		return nil, entity.ErrNotFound
+	}
+
+	return
+}
+
+func (s *ColumnService) GetByID(ctx context.Context, boardID, columnID string) (column entity.Column, err error) {
+	colums, err := s.Get(ctx, entity.GetColumnsOpts{ID: columnID, BoardID: boardID})
+	if err != nil {
+		return
+	}
+
+	return colums[0], nil
+}
+
+func (s *ColumnService) GetByBoardID(ctx context.Context, boardID string) (columns entity.Columns, err error) {
+	return s.Get(ctx, entity.GetColumnsOpts{BoardID: boardID})
+}
+
+func (s *ColumnService) CreateColumn(ctx context.Context, columnCreate entity.ColumnCreate) (column entity.Column, err error) {
+	defer utils.AddFuncLabel("[service-create-column]", err)
+
+	newColumnID, err := s.repo.Column.CreateColumn(ctx, columnCreate)
+	if err != nil {
+		return
+	}
+
+	return s.GetByID(ctx, columnCreate.BoardID, newColumnID)
+}
+
+func (s *ColumnService) UpdateColumn(ctx context.Context, boardID string, columnUpdate entity.ColumnUpdate) (column entity.Column, err error) {
+	defer utils.AddFuncLabel("[service-update-column]", err)
+
+	if err = s.repo.Column.UpdateColumn(ctx, columnUpdate); err != nil {
+		return
+	}
+
+	return s.GetByID(ctx, boardID, columnUpdate.ID)
+}
+
+func (s *ColumnService) DeleteColumn(ctx context.Context, columnID string) (err error) {
+	defer utils.AddFuncLabel("[service-delete-column]", err)
+
+	return s.repo.Column.DeleteColumn(ctx, columnID)
+}
+
+func (s *ColumnService) SwapColumns(ctx context.Context, boardID, columnIDA, columnIDB string) (err error) {
+	defer utils.AddFuncLabel("[service-swap-columns]", err)
+
+	columnA, err := s.GetByID(ctx, boardID, columnIDA)
+	if err != nil {
+		return
+	}
+
+	orderColumnA := columnA.OrderNumber
+
+	columnB, err := s.GetByID(ctx, boardID, columnIDB)
+	if err != nil {
+		return
+	}
+
+	orderColumnB := columnB.OrderNumber
+
+	columnUpdateA := entity.ColumnUpdate{
+		ID:          columnIDA,
+		OrderNumber: &orderColumnB,
+	}
+
+	columnUpdateB := entity.ColumnUpdate{
+		ID:          columnIDB,
+		OrderNumber: &orderColumnA,
+	}
+
+	if err = s.repo.Column.UpdateColumn(ctx, columnUpdateA); err != nil {
+		return
+	}
+
+	return s.repo.Column.UpdateColumn(ctx, columnUpdateB)
+
+}
