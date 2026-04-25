@@ -14,9 +14,9 @@ func SearchEq(query squirrel.SelectBuilder, field string, search any) squirrel.S
 	}
 
 	return query.Where(
-		squirrel.Expr(
-			"? = ANY("+field+")", value,
-		),
+		squirrel.Eq{
+			field: value,
+		},
 	)
 }
 
@@ -27,16 +27,15 @@ func SearchMultiEq(query squirrel.SelectBuilder, field string, search []string) 
 
 	or := squirrel.Or{}
 
-	for _, v := range search {
-		value := fmt.Sprint(v)
+	for _, value := range search {
 
 		if value == "" {
 			continue
 		}
 
-		or = append(or, squirrel.Expr(
-			"? = ANY("+field+")", value,
-		))
+		or = append(or, squirrel.Eq{
+			field: value,
+		})
 
 	}
 

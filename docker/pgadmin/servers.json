@@ -1,0 +1,14 @@
+{
+    "Servers": {
+      "1": {
+        "Name": "db",
+        "Group": "Local",
+        "Host": "postgres",
+        "Port": 5432,
+        "MaintenanceDB": "todo_task",
+        "Username": "coreuser",
+        "PassFile": "/pgpass",
+        "SSLMode": "prefer"
+      }
+    }
+  }   

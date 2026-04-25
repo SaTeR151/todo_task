@@ -9,6 +9,7 @@ import (
 	pgRepo "github.com/sater-151/todo-list/internal/repository/postgres"
 	"github.com/sater-151/todo-list/internal/service"
 	"github.com/sater-151/todo-list/pkg/postgres"
+	"github.com/sater-151/todo-list/pkg/server"
 	"github.com/sirupsen/logrus"
 )
 
@@ -62,11 +63,13 @@ func main() {
 		logrus.Fatalf("Ошибка при инициализации репозитория: %s", err)
 	}
 
-	service := service.New(postgresRepo, appSettings.Config.SecretKey)
+	todoTask := service.New(postgresRepo, appSettings.Config.SecretKey)
 
-	server := rest.New(service)
+	rst := rest.New(todoTask)
 
-	if err := server.Run(); err != nil {
+	srv := new(server.Server)
+
+	if err := srv.Run(appSettings.Parameters.Server.Port, rst.Run()); err != nil {
 		logrus.Fatalf("Ошибка при запуске сервера: %v", err)
 	}
 

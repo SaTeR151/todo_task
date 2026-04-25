@@ -5,7 +5,7 @@ type BoardPOST struct {
 }
 
 type BoadGETUri struct {
-	BoardID string `json:"board" binding:"required"`
+	BoardID string `uri:"board" binding:"required"`
 }
 
 type BoardPATCH struct {
@@ -13,9 +13,9 @@ type BoardPATCH struct {
 }
 
 type BoardPATCHUri struct {
-	BoardID string `json:"board" binding:"required"`
+	BoardID string `uri:"board" binding:"required"`
 }
 
 type BoardDELETEUri struct {
-	BoardID string `json:"board" binding:"required"`
+	BoardID string `uri:"board" binding:"required"`
 }

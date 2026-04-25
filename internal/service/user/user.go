@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -29,17 +30,37 @@ func (s *UserService) Create(ctx context.Context, userCreate entity.UserCreate) 
 		return
 	}
 
-	users, err := s.repo.User.Get(ctx, entity.GetUsersOpts{ID: newUserID})
+	user, err := s.GetByID(ctx, newUserID)
 	if err != nil {
 		return
 	}
 
-	return users[0], nil
+	nullType := entity.TypeCreate{
+		UserID: user.ID,
+		Name:   "null",
+		Color:  "#FFFFFF",
+	}
+
+	_, err = s.repo.Type.Create(ctx, nullType)
+	if err != nil {
+		return
+	}
+
+	return user, nil
 }
 
 func (s *UserService) Update(ctx context.Context, userUpdate entity.UserUpdate) (res entity.User, err error) {
-	if err = s.repo.User.Update(ctx, userUpdate); err != nil {
-		return
+	if userUpdate.Login != nil || userUpdate.RefreshToken != nil {
+		if err = s.repo.User.Update(ctx, userUpdate); err != nil {
+			return
+		}
+	}
+
+	if userUpdate.Password != nil {
+		err = s.repo.User.UpdatePassword(ctx, userUpdate.ID, *userUpdate.Password)
+		if err != nil {
+			return
+		}
 	}
 
 	users, err := s.repo.User.Get(ctx, entity.GetUsersOpts{ID: userUpdate.ID})
@@ -60,12 +81,7 @@ func (s *UserService) Delete(ctx context.Context, userID string) error {
 }
 
 func (s *UserService) GetRefreshToken(ctx context.Context, userID string) (res string, err error) {
-	user, err := s.GetByID(ctx, userID)
-	if err != nil {
-		return
-	}
-
-	return user.RefreshToken, nil
+	return s.repo.User.GetRefreshToken(ctx, userID)
 }
 
 func (s *UserService) Get(ctx context.Context, opts entity.GetUsersOpts) (users []entity.User, err error) {
@@ -82,12 +98,12 @@ func (s *UserService) Get(ctx context.Context, opts entity.GetUsersOpts) (users 
 }
 
 func (s *UserService) GetPassword(ctx context.Context, userID string) (res string, err error) {
-	user, err := s.GetByID(ctx, userID)
+	userPassword, err := s.repo.User.GetPassword(ctx, userID)
 	if err != nil {
 		return
 	}
 
-	return user.Password, nil
+	return userPassword, nil
 }
 
 func (s *UserService) GetByID(ctx context.Context, userID string) (res entity.User, err error) {
@@ -108,7 +124,7 @@ func (s *UserService) GetByLogin(ctx context.Context, login string) (res entity.
 	return users[0], nil
 }
 
-func (s *UserService) ParseToken(ctx context.Context, token string) (string, entity.AppError) {
+func (s *UserService) ParseToken(ctx context.Context, token string) (string, *entity.AppError) {
 	tokenString := strings.TrimPrefix(token, "Bearer ")
 
 	jwtToken, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
@@ -116,7 +132,7 @@ func (s *UserService) ParseToken(ctx context.Context, token string) (string, ent
 	})
 
 	if err != nil || !jwtToken.Valid {
-		return "", entity.AppError{
+		return "", &entity.AppError{
 			Err:       err,
 			ErrStatus: entity.ErrBadAuth,
 		}
@@ -128,26 +144,34 @@ func (s *UserService) ParseToken(ctx context.Context, token string) (string, ent
 		userID = claims["user_id"].(string)
 	}
 
-	return userID, entity.NilError()
+	return userID, nil
 }
 
-func (s *UserService) Auth(ctx context.Context, login, password string) (accessToken, refreshToken string, appErr entity.AppError) {
+func (s *UserService) Auth(ctx context.Context, login, password string) (string, string, *entity.AppError) {
 	user, err := s.GetByLogin(ctx, login)
 	if err != nil {
-		return "", "", entity.AppError{
+		return "", "", &entity.AppError{
 			Err:       err,
 			ErrStatus: entity.ErrInternal,
 		}
 	}
 
-	if !strings.EqualFold(user.Password, password) {
-		return "", "", entity.AppError{
+	userPassword, err := s.GetPassword(ctx, user.ID)
+	if err != nil {
+		return "", "", &entity.AppError{
 			Err:       err,
+			ErrStatus: entity.ErrInternal,
+		}
+	}
+
+	if !strings.EqualFold(userPassword, password) {
+		return "", "", &entity.AppError{
+			Err:       fmt.Errorf("invalid-password"),
 			ErrStatus: entity.ErrBadAuth,
 		}
 	}
 
-	expirationTime := time.Now().Add(15 * time.Minute)
+	expirationTime := time.Now().Add(600 * time.Minute)
 
 	accessClaims := UserClaims{
 		UserID: user.ID,
@@ -157,9 +181,9 @@ func (s *UserService) Auth(ctx context.Context, login, password string) (accessT
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
-	accessToken, err = token.SignedString([]byte(s.secretKey))
+	accessToken, err := token.SignedString([]byte(s.secretKey))
 	if err != nil {
-		return "", "", entity.AppError{
+		return "", "", &entity.AppError{
 			Err:       err,
 			ErrStatus: entity.ErrInternal,
 		}
@@ -174,9 +198,9 @@ func (s *UserService) Auth(ctx context.Context, login, password string) (accessT
 	}
 
 	token = jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
-	refreshToken, err = token.SignedString([]byte(s.secretKey))
+	refreshToken, err := token.SignedString([]byte(s.secretKey))
 	if err != nil {
-		return "", "", entity.AppError{
+		return "", "", &entity.AppError{
 			Err:       err,
 			ErrStatus: entity.ErrInternal,
 		}
@@ -189,27 +213,27 @@ func (s *UserService) Auth(ctx context.Context, login, password string) (accessT
 
 	err = s.repo.User.Update(ctx, userUpdate)
 	if err != nil {
-		return "", "", entity.AppError{
+		return "", "", &entity.AppError{
 			Err:       err,
 			ErrStatus: entity.ErrInternal,
 		}
 	}
 
-	return
+	return accessToken, refreshToken, nil
 }
 
-func (s *UserService) RefreshToken(ctx context.Context, userID, refreshToken string) (accessToken string, appErr entity.AppError) {
+func (s *UserService) RefreshToken(ctx context.Context, userID, refreshToken string) (accessToken string, appErr *entity.AppError) {
 	userRefreshToken, err := s.GetRefreshToken(ctx, userID)
 	if err != nil {
-		return "", entity.AppError{
+		return "", &entity.AppError{
 			Err:       err,
 			ErrStatus: entity.ErrInternal,
 		}
 	}
 
 	if !strings.EqualFold(userRefreshToken, refreshToken) {
-		return "", entity.AppError{
-			Err:       err,
+		return "", &entity.AppError{
+			Err:       fmt.Errorf("invalid-refresh-token"),
 			ErrStatus: entity.ErrBadAuth,
 		}
 	}
@@ -219,7 +243,7 @@ func (s *UserService) RefreshToken(ctx context.Context, userID, refreshToken str
 	})
 
 	if err != nil || !jwtRefreshToken.Valid {
-		return "", entity.AppError{
+		return "", &entity.AppError{
 			Err:       err,
 			ErrStatus: entity.ErrBadAuth,
 		}
@@ -237,7 +261,7 @@ func (s *UserService) RefreshToken(ctx context.Context, userID, refreshToken str
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	accessToken, err = token.SignedString([]byte(s.secretKey))
 	if err != nil {
-		return "", entity.AppError{
+		return "", &entity.AppError{
 			Err:       err,
 			ErrStatus: entity.ErrInternal,
 		}

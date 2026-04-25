@@ -24,6 +24,7 @@ func (s *TypeStorage) Get(ctx context.Context, opts entity.GetTypesOpts) (res en
 
 	query = pgutils.SearchEq(query, "types.id", opts.ID)
 	query = pgutils.SearchEq(query, "types.user_id", opts.UserID)
+	query = pgutils.SearchEq(query, "types.name", opts.Name)
 
 	sql, args, err := query.ToSql()
 

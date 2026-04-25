@@ -53,7 +53,7 @@ func (s *BoardService) Create(ctx context.Context, boardCreate entity.BoardCreat
 	// Таблица содержит дефолтную колонку backlog
 	columnCreate := entity.ColumnCreate{
 		BoardID:    newBoardID,
-		Name:       "Backlog",
+		Name:       "backlog",
 		OderNumber: -1,
 	}
 

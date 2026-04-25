@@ -18,11 +18,16 @@ type TodoList struct {
 }
 
 func New(repo *postgres.Repository, secretKey string) *TodoList {
+	boardService := board.New(repo)
+	taskService := task.New(repo)
+	columnService := column.New(repo, taskService)
+	userService := user.New(repo, secretKey)
+	typeService := type_service.New(repo)
 	return &TodoList{
-		BoardService:  board.New(repo),
-		ColumnService: column.New(repo),
-		TaskService:   task.New(repo),
-		TypeService:   type_service.New(repo),
-		UserService:   user.New(repo, secretKey),
+		BoardService:  boardService,
+		ColumnService: columnService,
+		TaskService:   taskService,
+		TypeService:   typeService,
+		UserService:   userService,
 	}
 }

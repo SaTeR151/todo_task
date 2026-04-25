@@ -4,6 +4,7 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
 	"github.com/sater-151/todo-list/pkg/utils"
+	"github.com/sirupsen/logrus"
 )
 
 type Config struct {
@@ -13,7 +14,7 @@ type Config struct {
 		User      string `env:"DB_USER" env-required:"true"`
 		Password  string `env:"DB_PASSWORD" env-required:"true"`
 		DbName    string `env:"DB_NAME" env-required:"true"`
-		CryproKey string `env:"DB_CRYPRO_KEY" env-required:"true"`
+		CryproKey string `env:"DB_CRYPTO_KEY" env-required:"true"`
 		Schema    string `env:"DB_SCHEMA" env-required:"true"`
 	}
 
@@ -23,8 +24,12 @@ type Config struct {
 func GetConfig() (cfg Config, err error) {
 	defer utils.AddFuncLabel("[init-get-config]", err)
 
+	// Загружаем переменные окружения из .env
 	if err = godotenv.Load(); err != nil {
-		return
+		// Если не удалось найти .env файл,
+		// выводим только предупреждение.
+		// Это не критично.
+		logrus.Warn(".env файл не найден")
 	}
 
 	if err = cleanenv.ReadEnv(&cfg); err != nil {

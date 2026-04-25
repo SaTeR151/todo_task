@@ -20,6 +20,7 @@ func (t Types) GetIDs() []string {
 type GetTypesOpts struct {
 	ID     string
 	UserID string
+	Name   string
 }
 
 type TypeCreate struct {

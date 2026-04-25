@@ -12,8 +12,8 @@ type Task struct {
 	ColumnID    string       `db:"column_id"`
 	Label       string       `db:"label"`
 	Description string       `db:"description"`
-	UpdatedAt   sql.NullTime `db:"updated_at"`
 	CreatedAt   sql.NullTime `db:"created_at"`
+	UpdatedAt   sql.NullTime `db:"updated_at"`
 }
 
 func (t Task) ToEntity() entity.Task {
@@ -23,7 +23,7 @@ func (t Task) ToEntity() entity.Task {
 		ColumnID:    t.ColumnID,
 		Label:       t.Label,
 		Description: t.Description,
-		UpdatedAt:   t.UpdatedAt.Time,
 		CreatedAt:   t.CreatedAt.Time,
+		UpdatedAt:   t.UpdatedAt.Time,
 	}
 }

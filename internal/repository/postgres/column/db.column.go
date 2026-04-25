@@ -17,13 +17,16 @@ func (s *ColumnStorage) GetColumns(ctx context.Context, opts entity.GetColumnsOp
 
 	query := s.queryBuilder.Select(
 		"id",
-		"label",
+		"name",
 		"board_id",
 		"order_number",
-	).From(fmt.Sprintf("%s.%s AS columns", s.scheme, TABLE_COLUMNS))
+	).From(fmt.Sprintf("%s.%s AS columns", s.scheme, TABLE_COLUMNS)).OrderBy("order_number")
 
 	query = pgutils.SearchEq(query, "columns.board_id", opts.BoardID)
-	query = pgutils.SearchEq(query, "columns.order_number", opts.OrderNumber)
+	if opts.OrderNumber != 0 {
+		query = pgutils.SearchEq(query, "columns.order_number", opts.OrderNumber)
+	}
+	query = pgutils.SearchEq(query, "columns.id", opts.ID)
 
 	sql, args, err := query.ToSql()
 
@@ -65,7 +68,7 @@ func (s *ColumnStorage) CreateColumn(ctx context.Context, column entity.ColumnCr
 	sql, args, err := s.queryBuilder.
 		Insert(fmt.Sprintf("%s.%s", s.scheme, TABLE_COLUMNS)).
 		Columns(
-			"label",
+			"name",
 			"board_id",
 			"order_number",
 		).Values(

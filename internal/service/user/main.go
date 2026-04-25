@@ -16,9 +16,9 @@ type User interface {
 	GetPassword(ctx context.Context, userID string) (res string, err error)
 	GetByID(ctx context.Context, userID string) (res entity.User, err error)
 	GetByLogin(ctx context.Context, login string) (res entity.User, err error)
-	ParseToken(ctx context.Context, token string) (string, entity.AppError)
-	Auth(ctx context.Context, userID, password string) (accessToken, refreshToken string, appErr entity.AppError)
-	RefreshToken(ctx context.Context, userID, refreshToken string) (accessToken string, appErr entity.AppError)
+	ParseToken(ctx context.Context, token string) (string, *entity.AppError)
+	Auth(ctx context.Context, userID, password string) (accessToken, refreshToken string, appErr *entity.AppError)
+	RefreshToken(ctx context.Context, userID, refreshToken string) (accessToken string, appErr *entity.AppError)
 }
 
 func New(repo *postgres.Repository, secretKey string) User {

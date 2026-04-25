@@ -22,8 +22,8 @@ func (s *TaskStorage) Get(ctx context.Context, opts entity.GetTasksOpts) (res en
 		"column_id",
 		"type_id",
 		"description",
-		"estimate",
-		"deadline",
+		"created_at",
+		"updated_at",
 	).From(fmt.Sprintf("%s.%s AS tasks", s.scheme, TABLE_TASKS))
 
 	query = pgutils.SearchEq(query, "tasks.id", opts.ID)

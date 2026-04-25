@@ -100,16 +100,9 @@ func (s *UserStorage) GetRefreshToken(ctx context.Context, userID string) (res s
 func (s *UserStorage) Create(ctx context.Context, userCreate entity.UserCreate) (res string, err error) {
 	defer utils.AddFuncLabel("[repo-user-create]", err)
 
-	sql, args, err := s.queryBuilder.
-		Insert(fmt.Sprintf("%s.%s", s.scheme, TABLE_USERS)).
-		Columns(
-			"login",
-			fmt.Sprintf("pgp_sym_encrypt(password::bytea, '%s')", s.cryptoKey),
-		).Values(
-		userCreate.Login,
-		userCreate.Password,
+	sql, args, err := squirrel.Expr(
+		fmt.Sprintf("INSERT INTO todo.users (login,password) VALUES ('%s', pgp_sym_encrypt('%s', '%s')) RETURNING id", userCreate.Login, userCreate.Password, s.cryptoKey),
 	).
-		Suffix("RETURNING id").
 		ToSql()
 
 	logrus.Debugf("\n [create-user: INCOMING] \n user-create: %+v \n", userCreate)
@@ -135,10 +128,6 @@ func (s *UserStorage) Update(ctx context.Context, userUpdate entity.UserUpdate) 
 		query = query.Set("login", *userUpdate.Login)
 	}
 
-	if userUpdate.Password != nil {
-		query = query.Set(fmt.Sprintf("pgp_sym_encrypt(password::bytea, '%s')", s.cryptoKey), *userUpdate.Password)
-	}
-
 	if userUpdate.RefreshToken != nil {
 		query = query.Set("refresh_token", *userUpdate.RefreshToken)
 	}
@@ -147,6 +136,26 @@ func (s *UserStorage) Update(ctx context.Context, userUpdate entity.UserUpdate) 
 
 	logrus.Debugf("\n [update-user: INCOMING] \n user-update: %+v \n", userUpdate)
 	logrus.Debugf("\n [update-user: SQL] \n Query: %s \n ARGS: %v \n", sql, args)
+
+	if err != nil {
+		return
+	}
+
+	_, err = s.client.Exec(ctx, sql, args...)
+
+	return
+}
+
+func (s *UserStorage) UpdatePassword(ctx context.Context, userID, newPassword string) (err error) {
+	defer utils.AddFuncLabel("[repo-user-update-password]", err)
+
+	sql, args, err := squirrel.Expr(
+		fmt.Sprintf("UPDATE todo.users SET password = pgp_sym_encrypt('%s', '%s') WHERE id = '%s'", newPassword, s.cryptoKey, userID),
+	).
+		ToSql()
+
+	logrus.Debugf("\n [update-password: INCOMING] \n user-id: %s \n new-password: %s \n", userID, newPassword)
+	logrus.Debugf("\n [update-password: SQL] \n Query: %s \n ARGS: %v \n", sql, args)
 
 	if err != nil {
 		return

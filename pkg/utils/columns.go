@@ -13,6 +13,9 @@ func NameGroup(columns entity.Columns) map[string]struct{} {
 func OrderNumberGroup(columns entity.Columns) map[int]struct{} {
 	columnsMap := map[int]struct{}{}
 	for _, column := range columns {
+		if column.OrderNumber == -1 {
+			continue
+		}
 		columnsMap[column.OrderNumber] = struct{}{}
 	}
 	return columnsMap

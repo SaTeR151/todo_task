@@ -1,0 +1,49 @@
+version: '3'
+
+services:
+
+  postgres:
+    container_name: postgres
+    image: postgres:14.5-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: todo_task
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    container_name: pgadmin4
+    image: dpage/pgadmin4:latest
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+       - ./docker/pgadmin/servers.json:/pgadmin4/servers.json
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+  # todo_task:
+  #   build: .
+  #   restart: always
+  #   command: ["-migrate", "-debug"]
+  #   environment:
+  #     DB_HOST: postgres
+  #     DB_NAME: todo_task
+  #     DB_USER: user
+  #     DB_PASSWORD: password
+  #     DB_PORT: 5432
+  #     DB_CRYPTO_KEY: secret
+  #     DB_SCHEMA: todo
+  #     SECRET_KEY: sater151
+  #   volumes:
+  #     - ./parameters.yaml:/app/parameters.yaml
+  #     - ./migrations:/app/migrations
+  #   ports:
+  #     - "8081:8081"
+  #   depends_on:
+  #     - postgres

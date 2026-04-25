@@ -8,10 +8,10 @@ import (
 )
 
 type Task interface {
-	Get(ctx context.Context, opts entity.GetTasksOpts) (res entity.Tasks, err error)
+	Get(ctx context.Context, boardID string, opts entity.GetTasksOpts) (res entity.Tasks, err error)
 	GetByID(ctx context.Context, boardID, taskID string) (res entity.Task, err error)
 	GetByColumnID(ctx context.Context, boardID, columnID string) (res entity.Tasks, err error)
-	GetByTypeID(ctx context.Context, typeID string) (res entity.Tasks, err error)
+	GetByTypeID(ctx context.Context, boardID, typeID string) (res entity.Tasks, err error)
 	GetByBoardID(ctx context.Context, boardID string) (res entity.Tasks, err error)
 	Create(ctx context.Context, boardID string, taskCreate entity.TaskCreate) (res entity.Task, err error)
 	Update(ctx context.Context, boardID string, taskUpdate entity.TaskUpdate) (res entity.Task, err error)

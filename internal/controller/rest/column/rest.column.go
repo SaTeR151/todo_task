@@ -15,18 +15,18 @@ func (c *ColumnController) POST(ctx *gin.Context) {
 
 	var columnPOST dto.ColumnPOST
 	if err := ctx.ShouldBindJSON(&columnPOST); err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	columns, err := c.s.ColumnService.GetByBoardID(ctx, boardID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	if err := validation.ValidateColumnCreate(columns, columnPOST); err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -38,7 +38,7 @@ func (c *ColumnController) POST(ctx *gin.Context) {
 
 	column, err := c.s.ColumnService.CreateColumn(ctx, columnCreate)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -50,17 +50,17 @@ func (c *ColumnController) GET(ctx *gin.Context) {
 
 	var columnGETQuery dto.ColumnGETUri
 	if err := ctx.ShouldBindUri(&columnGETQuery); err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	columns, err := c.s.ColumnService.GetByID(ctx, boardID, columnGETQuery.ColumnID)
 	if err != nil {
 		if err == entity.ErrNotFound {
-			ctx.JSON(http.StatusNotFound, err)
+			ctx.JSON(http.StatusNotFound, err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -73,10 +73,10 @@ func (c *ColumnController) LIST(ctx *gin.Context) {
 	columns, err := c.s.ColumnService.GetByBoardID(ctx, boardID)
 	if err != nil {
 		if err == entity.ErrNotFound {
-			ctx.JSON(http.StatusNotFound, err)
+			ctx.JSON(http.StatusNotFound, err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -84,20 +84,21 @@ func (c *ColumnController) LIST(ctx *gin.Context) {
 }
 
 func (c *ColumnController) DELETE(ctx *gin.Context) {
+	boardID := ctx.MustGet("board").(string)
 
 	var columnDELETEQuery dto.ColumnDELETEUri
 	if err := ctx.ShouldBindUri(&columnDELETEQuery); err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	err := c.s.ColumnService.DeleteColumn(ctx, columnDELETEQuery.ColumnID)
+	err := c.s.ColumnService.DeleteColumn(ctx, boardID, columnDELETEQuery.ColumnID)
 	if err != nil {
 		if err == entity.ErrNotFound {
-			ctx.JSON(http.StatusNotFound, err)
+			ctx.JSON(http.StatusNotFound, err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -109,30 +110,30 @@ func (c *ColumnController) PATCH(ctx *gin.Context) {
 
 	var uri dto.ColumnPATCHUri
 	if err := ctx.ShouldBindUri(&uri); err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	var req dto.ColumnPATCH
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	columns, err := c.s.ColumnService.GetByBoardID(ctx, boardID)
 	if err != nil {
 		if err == entity.ErrNotFound {
-			ctx.JSON(http.StatusNotFound, err)
+			ctx.JSON(http.StatusNotFound, err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	otherColumns := utils.ColumnsExcept(columns, uri.ColumnID)
 
 	if err := validation.ValidateColumnUpdate(otherColumns, req); err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -145,10 +146,10 @@ func (c *ColumnController) PATCH(ctx *gin.Context) {
 	column, err := c.s.ColumnService.UpdateColumn(ctx, boardID, columnUpdate)
 	if err != nil {
 		if err == entity.ErrNotFound {
-			ctx.JSON(http.StatusNotFound, err)
+			ctx.JSON(http.StatusNotFound, err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -160,42 +161,42 @@ func (c *ColumnController) SWAP(ctx *gin.Context) {
 
 	var columnSWAP dto.ColumnSWAP
 	if err := ctx.ShouldBindJSON(&columnSWAP); err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	columnA, err := c.s.ColumnService.GetByID(ctx, boardID, columnSWAP.ColumnIDA)
 	if err != nil {
 		if err == entity.ErrNotFound {
-			ctx.JSON(http.StatusNotFound, err)
+			ctx.JSON(http.StatusNotFound, err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	columnB, err := c.s.ColumnService.GetByID(ctx, boardID, columnSWAP.ColumnIDB)
 	if err != nil {
 		if err == entity.ErrNotFound {
-			ctx.JSON(http.StatusNotFound, err)
+			ctx.JSON(http.StatusNotFound, err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	if err := validation.ValidateColumnSwap(columnA, columnB); err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	err = c.s.ColumnService.SwapColumns(ctx, boardID, columnSWAP.ColumnIDA, columnSWAP.ColumnIDB)
 	if err != nil {
 		if err == entity.ErrNotFound {
-			ctx.JSON(http.StatusNotFound, err)
+			ctx.JSON(http.StatusNotFound, err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 

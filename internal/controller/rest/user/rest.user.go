@@ -20,7 +20,7 @@ func (c *UserController) POST(ctx *gin.Context) {
 	}
 
 	users, err := c.s.UserService.Get(ctx, entity.GetUsersOpts{})
-	if err != nil {
+	if err != nil && err != entity.ErrNotFound {
 		ctx.JSON(500, err.Error())
 		return
 	}
@@ -47,7 +47,13 @@ func (c *UserController) Auth(ctx *gin.Context) {
 	}
 
 	accessToken, refreshToken, err := c.s.UserService.Auth(ctx, req.Login, req.Password)
-	if !err.IsEmpty() {
+	if err != nil {
+
+		if err.IsNotFound() {
+			ctx.JSON(404, err.Error())
+			return
+		}
+
 		if err.IsBadAuth() {
 			ctx.JSON(401, err.Error())
 			return
@@ -83,13 +89,13 @@ func (c *UserController) ChangePassword(ctx *gin.Context) {
 		return
 	}
 
-	user, err := c.s.UserService.GetByID(ctx, userID)
+	userCurrentPassword, err := c.s.UserService.GetPassword(ctx, userID)
 	if err != nil {
 		ctx.JSON(500, err.Error())
 		return
 	}
 
-	if err := validation.ValidateUserPasswordChange(req, user); err != nil {
+	if err := validation.ValidateUserPasswordChange(req, userCurrentPassword); err != nil {
 		ctx.JSON(400, err.Error())
 		return
 	}
@@ -120,7 +126,7 @@ func (c *UserController) RefreshToken(ctx *gin.Context) {
 	}
 
 	newAccessToken, err := c.s.UserService.RefreshToken(ctx, userID, req.RefreshToken)
-	if !err.IsEmpty() {
+	if err != nil {
 		if err.IsBadAuth() {
 			ctx.JSON(401, err.Error())
 			return

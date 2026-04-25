@@ -23,10 +23,7 @@ func ValidateColumnUpdate(allBoardColumns entity.Columns, newColumn dto.ColumnPA
 
 	if newColumn.OrderNumber != nil {
 		orderNumber := *newColumn.OrderNumber
-		if orderNumber <= 0 {
-			return fmt.Errorf("order number can't be below or eq 0")
-		}
-		if orderNumber <= 0 {
+		if orderNumber <= 0 && orderNumber != -1 {
 			return fmt.Errorf("order number can't be below or eq 0")
 		}
 

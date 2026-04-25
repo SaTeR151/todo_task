@@ -5,6 +5,7 @@ import (
 
 	"github.com/sater-151/todo-list/internal/entity"
 	"github.com/sater-151/todo-list/internal/repository/postgres"
+	"github.com/sater-151/todo-list/internal/service/task"
 )
 
 type Column interface {
@@ -13,12 +14,13 @@ type Column interface {
 	GetByBoardID(ctx context.Context, boardID string) (columns entity.Columns, err error)
 	CreateColumn(ctx context.Context, columnCreate entity.ColumnCreate) (column entity.Column, err error)
 	UpdateColumn(ctx context.Context, boardID string, columnUpdate entity.ColumnUpdate) (column entity.Column, err error)
-	DeleteColumn(ctx context.Context, columnID string) (err error)
+	DeleteColumn(ctx context.Context, boardID, columnID string) (err error)
 	SwapColumns(ctx context.Context, boardID, columnIDA, columnIDB string) (err error)
 }
 
-func New(repo *postgres.Repository) Column {
+func New(repo *postgres.Repository, taskService task.Task) Column {
 	return &ColumnService{
-		repo: repo,
+		repo:        repo,
+		taskService: taskService,
 	}
 }

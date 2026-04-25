@@ -5,11 +5,13 @@ import (
 
 	"github.com/sater-151/todo-list/internal/entity"
 	"github.com/sater-151/todo-list/internal/repository/postgres"
+	"github.com/sater-151/todo-list/internal/service/task"
 	"github.com/sater-151/todo-list/pkg/utils"
 )
 
 type ColumnService struct {
-	repo *postgres.Repository
+	repo        *postgres.Repository
+	taskService task.Task
 }
 
 func (s *ColumnService) Get(ctx context.Context, opts entity.GetColumnsOpts) (columns entity.Columns, err error) {
@@ -60,8 +62,36 @@ func (s *ColumnService) UpdateColumn(ctx context.Context, boardID string, column
 	return s.GetByID(ctx, boardID, columnUpdate.ID)
 }
 
-func (s *ColumnService) DeleteColumn(ctx context.Context, columnID string) (err error) {
+func (s *ColumnService) DeleteColumn(ctx context.Context, boardID, columnID string) (err error) {
 	defer utils.AddFuncLabel("[service-delete-column]", err)
+
+	tasks, err := s.repo.Task.Get(ctx, entity.GetTasksOpts{ColumnID: columnID})
+	if err != nil {
+		return
+	}
+
+	var backlogColumn entity.Column
+
+	if len(tasks) > 0 {
+		columns, err := s.Get(ctx, entity.GetColumnsOpts{Name: "backlog"})
+		if err != nil {
+			return err
+		}
+
+		if len(columns) == 0 {
+			err = entity.ErrNotFound
+			return err
+		}
+
+		backlogColumn = columns[0]
+	}
+
+	for _, task := range tasks {
+		_, err := s.taskService.Move(ctx, boardID, task.ID, backlogColumn.ID)
+		if err != nil {
+			return err
+		}
+	}
 
 	return s.repo.Column.DeleteColumn(ctx, columnID)
 }

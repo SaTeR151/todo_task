@@ -4,12 +4,11 @@ import (
 	"errors"
 
 	"github.com/sater-151/todo-list/internal/controller/rest/dto"
-	"github.com/sater-151/todo-list/internal/entity"
 )
 
-func ValidateUserPasswordChange(pwdChange dto.UserPasswordChange, user entity.User) error {
+func ValidateUserPasswordChange(pwdChange dto.UserPasswordChange, userCurrentPassword string) error {
 
-	if user.Password != pwdChange.OldPassword {
+	if userCurrentPassword != pwdChange.OldPassword {
 		return errors.New("old password is incorrect")
 	}
 

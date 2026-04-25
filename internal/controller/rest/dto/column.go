@@ -6,11 +6,11 @@ type ColumnPOST struct {
 }
 
 type ColumnGETUri struct {
-	ColumnID string `json:"column" binding:"required"`
+	ColumnID string `uri:"column" binding:"required"`
 }
 
 type ColumnDELETEUri struct {
-	ColumnID string `json:"column" binding:"required"`
+	ColumnID string `uri:"column" binding:"required"`
 }
 
 type ColumnPATCH struct {
@@ -19,7 +19,7 @@ type ColumnPATCH struct {
 }
 
 type ColumnPATCHUri struct {
-	ColumnID string `json:"column" binding:"required"`
+	ColumnID string `uri:"column" binding:"required"`
 }
 
 type ColumnSWAP struct {

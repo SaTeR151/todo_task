@@ -14,7 +14,20 @@ type TaskService struct {
 	repo *postgres.Repository
 }
 
-func (s *TaskService) Get(ctx context.Context, opts entity.GetTasksOpts) (tasks entity.Tasks, err error) {
+func (s *TaskService) Get(ctx context.Context, boardID string, opts entity.GetTasksOpts) (tasks entity.Tasks, err error) {
+	columns, err := s.repo.Column.GetColumns(ctx, entity.GetColumnsOpts{BoardID: boardID})
+	if err != nil {
+		return
+	}
+
+	if len(columns) == 0 {
+		return nil, fmt.Errorf("invalid board id: %s", boardID)
+	}
+
+	columnIDs := columns.GetIDs()
+
+	opts.ColumnIDs = append(opts.ColumnIDs, columnIDs...)
+
 	tasks, err = s.repo.Task.Get(ctx, opts)
 	if err != nil {
 		return
@@ -39,7 +52,7 @@ func (s *TaskService) GetByID(ctx context.Context, boardID, taskID string) (res 
 
 	IDs := columns.GetIDs()
 
-	tasks, err := s.Get(ctx, entity.GetTasksOpts{ID: taskID, ColumnIDs: IDs})
+	tasks, err := s.Get(ctx, boardID, entity.GetTasksOpts{ID: taskID, ColumnIDs: IDs})
 	if err != nil {
 		return
 	}
@@ -63,7 +76,7 @@ func (s *TaskService) GetByColumnID(ctx context.Context, boardID, columnID strin
 		return nil, fmt.Errorf("invalid column id: %s", columnID)
 	}
 
-	tasks, err := s.Get(ctx, entity.GetTasksOpts{ColumnID: columnID})
+	tasks, err := s.Get(ctx, boardID, entity.GetTasksOpts{ColumnID: columnID})
 	if err != nil {
 		return
 	}
@@ -71,8 +84,8 @@ func (s *TaskService) GetByColumnID(ctx context.Context, boardID, columnID strin
 	return tasks, nil
 }
 
-func (s *TaskService) GetByTypeID(ctx context.Context, typeID string) (res entity.Tasks, err error) {
-	users, err := s.Get(ctx, entity.GetTasksOpts{TypeID: typeID})
+func (s *TaskService) GetByTypeID(ctx context.Context, boardID, typeID string) (res entity.Tasks, err error) {
+	users, err := s.Get(ctx, boardID, entity.GetTasksOpts{TypeID: typeID})
 	if err != nil {
 		return
 	}
@@ -92,7 +105,7 @@ func (s *TaskService) GetByBoardID(ctx context.Context, boardID string) (res ent
 
 	columnIDs := columns.GetIDs()
 
-	tasks, err := s.Get(ctx, entity.GetTasksOpts{ColumnIDs: columnIDs})
+	tasks, err := s.Get(ctx, boardID, entity.GetTasksOpts{ColumnIDs: columnIDs})
 	if err != nil {
 		return
 	}
@@ -103,6 +116,17 @@ func (s *TaskService) GetByBoardID(ctx context.Context, boardID string) (res ent
 func (s *TaskService) Create(ctx context.Context, boardID string, taskCreate entity.TaskCreate) (res entity.Task, err error) {
 	defer utils.AddFuncLabel("[service-create-task]", err)
 
+	boards, err := s.repo.Board.Get(ctx, entity.GetBoardsOpts{ID: boardID})
+	if err != nil {
+		return
+	}
+
+	if len(boards) == 0 {
+		return entity.Task{}, entity.ErrNotFound
+	}
+
+	board := boards[0]
+
 	if taskCreate.ColumnID == "" {
 		columns, err := s.repo.Column.GetColumns(ctx, entity.GetColumnsOpts{BoardID: boardID, Name: "backlog"})
 		if err != nil {
@@ -112,6 +136,19 @@ func (s *TaskService) Create(ctx context.Context, boardID string, taskCreate ent
 		backlogColumn := columns[0]
 
 		taskCreate.ColumnID = backlogColumn.ID
+	}
+
+	if taskCreate.TypeID == "" {
+		types, err := s.repo.Type.Get(ctx, entity.GetTypesOpts{UserID: board.UserID, Name: "null"})
+		if err != nil {
+			return entity.Task{}, err
+		}
+
+		if len(types) == 0 {
+			return entity.Task{}, entity.ErrNotFound
+		}
+
+		taskCreate.TypeID = types[0].ID
 	}
 
 	newTypeID, err := s.repo.Task.Create(ctx, taskCreate)

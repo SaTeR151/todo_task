@@ -12,7 +12,7 @@ CREATE SCHEMA todo;
 --
 
 CREATE TABLE todo.users (
-  id uuid DEFAULT public.uuid_generate_v4() PRIMARY KEY,
+  id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
   login text NOT NULL,
   password text NOT NULL,
   refresh_token text,
@@ -26,15 +26,14 @@ CREATE TABLE todo.users (
 --
 
 CREATE TABLE todo.types (
-  id uuid DEFAULT public.uuid_generate_v4() PRIMARY KEY,
+  id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
   user_id uuid NOT NULL,
   name text NOT NULL,
   color text NOT NULL,
 
-  FOREIGN KEY (user_id) REFERENCES todo.users (id),
-
+  FOREIGN KEY (user_id) REFERENCES todo.users (id) ON DELETE CASCADE,
   CONSTRAINT types_pkey PRIMARY KEY (id),
-  CONSTRAINT name_unique UNIQUE (name)
+  CONSTRAINT type_name_unique UNIQUE (name)
 );
 
 --
@@ -42,14 +41,13 @@ CREATE TABLE todo.types (
 --
 
 CREATE TABLE todo.boards (
-  id uuid DEFAULT public.uuid_generate_v4() PRIMARY KEY,
+  id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
   user_id uuid NOT NULL,
   name text NOT NULL,
 
-  FOREIGN KEY (user_id) REFERENCES todo.users (id),
-
+  FOREIGN KEY (user_id) REFERENCES todo.users (id) ON DELETE CASCADE,
   CONSTRAINT boards_pkey PRIMARY KEY (id),
-  CONSTRAINT name_unique UNIQUE (name)
+  CONSTRAINT board_name_unique UNIQUE (name)
 );
 
 --
@@ -57,15 +55,14 @@ CREATE TABLE todo.boards (
 --
 
 CREATE TABLE todo.columns (
-  id uuid DEFAULT public.uuid_generate_v4() PRIMARY KEY,
+  id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
   board_id uuid NOT NULL,
   name text NOT NULL,
   order_number integer NOT NULL,
 
-  FOREIGN KEY (board_id) REFERENCES todo.boards (id),
-
+  FOREIGN KEY (board_id) REFERENCES todo.boards (id) ON DELETE CASCADE,
   CONSTRAINT columns_pkey PRIMARY KEY (id),
-  CONSTRAINT name_unique UNIQUE (name)
+  CONSTRAINT column_name_unique UNIQUE (name)
 );
 
 --
@@ -73,18 +70,17 @@ CREATE TABLE todo.columns (
 --
 
 CREATE TABLE todo.tasks (
-  id uuid DEFAULT public.uuid_generate_v4() PRIMARY KEY,
+  id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
   type_id uuid NOT NULL,
   column_id uuid NOT NULL,
   label text NOT NULL,
   description text NOT NULL,
-  creted_at timestamp with time zone NOT NULL DEFAULT now(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
 
-  FOREIGN KEY (column_id) REFERENCES todo.columns (id),
+  FOREIGN KEY (column_id) REFERENCES todo.columns (id) ON DELETE CASCADE,
   FOREIGN KEY (type_id) REFERENCES todo.types (id),
-
-  CONSTRAINT tasks_pkey PRIMARY KEY (id),
+  CONSTRAINT tasks_pkey PRIMARY KEY (id)
 );
 
 -- 
@@ -92,16 +88,13 @@ CREATE TABLE todo.tasks (
 --
 
 CREATE TABLE todo.move_events (
-  id uuid DEFAULT public.uuid_generate_v4() PRIMARY KEY,
+  id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
   task_id uuid NOT NULL,
   from_column_id uuid NOT NULL,
   to_column_id uuid NOT NULL,
   timestamp timestamp with time zone NOT NULL DEFAULT now(),
 
-  FOREIGN KEY (task_id) REFERENCES todo.tasks (id),
-  FOREIGN KEY (from_column_id) REFERENCES todo.columns (id),
-  FOREIGN KEY (to_column_id) REFERENCES todo.columns (id),
-
+  FOREIGN KEY (task_id) REFERENCES todo.tasks (id) ON DELETE CASCADE,
   CONSTRAINT move_events_pkey PRIMARY KEY (id)
 );
 

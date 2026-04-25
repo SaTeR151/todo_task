@@ -53,7 +53,18 @@ func (c *TaskController) POST(ctx *gin.Context) {
 func (c *TaskController) LIST(ctx *gin.Context) {
 	boardID := ctx.MustGet("board").(string)
 
-	tasks, err := c.s.TaskService.GetByBoardID(ctx, boardID)
+	var taskGETQuery dto.TaskGETQuery
+	if err := ctx.ShouldBindQuery(&taskGETQuery); err != nil {
+		ctx.JSON(400, err.Error())
+		return
+	}
+
+	taskGetOpts := entity.GetTasksOpts{
+		ColumnID: taskGETQuery.ColumnID,
+		TypeID:   taskGETQuery.TypeID,
+	}
+
+	tasks, err := c.s.TaskService.Get(ctx, boardID, taskGetOpts)
 	if err != nil {
 		if err == entity.ErrNotFound {
 			ctx.JSON(404, err.Error())
@@ -69,13 +80,13 @@ func (c *TaskController) LIST(ctx *gin.Context) {
 func (c *TaskController) GET(ctx *gin.Context) {
 	boardID := ctx.MustGet("board").(string)
 
-	var taskGETQuery dto.TaskGETUri
-	if err := ctx.ShouldBindUri(&taskGETQuery); err != nil {
+	var taskGETuri dto.TaskGETUri
+	if err := ctx.ShouldBindUri(&taskGETuri); err != nil {
 		ctx.JSON(400, err.Error())
 		return
 	}
 
-	task, err := c.s.TaskService.GetByID(ctx, boardID, taskGETQuery.TaskID)
+	task, err := c.s.TaskService.GetByID(ctx, boardID, taskGETuri.TaskID)
 	if err != nil {
 		if err == entity.ErrNotFound {
 			ctx.JSON(404, err.Error())
@@ -140,8 +151,8 @@ func (c *TaskController) PATCH(ctx *gin.Context) {
 	userID := ctx.MustGet("user").(string)
 	boardID := ctx.MustGet("board").(string)
 
-	var taskPATCHQuery dto.TaskPATCHUri
-	if err := ctx.ShouldBindUri(&taskPATCHQuery); err != nil {
+	var taskPATCHUri dto.TaskPATCHUri
+	if err := ctx.ShouldBindUri(&taskPATCHUri); err != nil {
 		ctx.JSON(400, err.Error())
 		return
 	}
@@ -166,6 +177,7 @@ func (c *TaskController) PATCH(ctx *gin.Context) {
 	}
 
 	taskUpdate := entity.TaskUpdate{
+		ID:          taskPATCHUri.TaskID,
 		Label:       taskPATCH.Label,
 		Description: taskPATCH.Description,
 		TypeID:      taskPATCH.TypeID,

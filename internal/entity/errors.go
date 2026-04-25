@@ -24,6 +24,13 @@ func (a *AppError) Error() string {
 	return a.Err.Error()
 }
 
+func (a *AppError) IsNotFound() bool {
+	if a.Err == ErrNotFound {
+		return true
+	}
+	return false
+}
+
 func (a *AppError) IsBadAuth() bool {
 	if a.ErrStatus == ErrBadAuth {
 		return true
@@ -43,18 +50,4 @@ func (a *AppError) IsBadInput() bool {
 		return true
 	}
 	return false
-}
-
-func (a *AppError) IsEmpty() bool {
-	if a.Err == nil {
-		return true
-	}
-	return false
-}
-
-func NilError() AppError {
-	return AppError{
-		Err:       nil,
-		ErrStatus: "",
-	}
 }

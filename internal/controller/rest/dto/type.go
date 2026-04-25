@@ -6,7 +6,7 @@ type TypePOST struct {
 }
 
 type TypeGetUri struct {
-	TypeID string `json:"type" binding:"required"`
+	TypeID string `uri:"type" binding:"required"`
 }
 
 type TypePATCH struct {
@@ -15,9 +15,9 @@ type TypePATCH struct {
 }
 
 type TypePATCHUri struct {
-	TypeID string `json:"type" binding:"required"`
+	TypeID string `uri:"type" binding:"required"`
 }
 
 type TypeDELETEUri struct {
-	TypeID string `json:"type" binding:"required"`
+	TypeID string `uri:"type" binding:"required"`
 }
