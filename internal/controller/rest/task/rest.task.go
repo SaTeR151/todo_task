@@ -17,13 +17,13 @@ func (c *TaskController) POST(ctx *gin.Context) {
 		return
 	}
 
-	columns, err := c.s.ColumnService.GetByBoardID(ctx, boardID)
+	columns, err := c.columns.GetByBoardID(ctx, boardID)
 	if err != nil {
 		ctx.JSON(400, err.Error())
 		return
 	}
 
-	types, err := c.s.TypeService.GetByUserID(ctx, userID)
+	types, err := c.types.GetByUserID(ctx, userID)
 	if err != nil {
 		ctx.JSON(400, err.Error())
 		return
@@ -41,7 +41,7 @@ func (c *TaskController) POST(ctx *gin.Context) {
 		TypeID:      taskPOST.TypeID,
 	}
 
-	newTask, err := c.s.TaskService.Create(ctx, boardID, taskCreate)
+	newTask, err := c.tasks.Create(ctx, boardID, taskCreate)
 	if err != nil {
 		ctx.JSON(500, err.Error())
 		return
@@ -64,10 +64,10 @@ func (c *TaskController) LIST(ctx *gin.Context) {
 		TypeID:   taskGETQuery.TypeID,
 	}
 
-	tasks, err := c.s.TaskService.Get(ctx, boardID, taskGetOpts)
+	tasks, err := c.tasks.Get(ctx, boardID, taskGetOpts)
 	if err != nil {
 		if err == entity.ErrNotFound {
-			ctx.JSON(404, err.Error())
+			ctx.JSON(200, entity.Tasks{})
 			return
 		}
 		ctx.JSON(500, err.Error())
@@ -86,7 +86,7 @@ func (c *TaskController) GET(ctx *gin.Context) {
 		return
 	}
 
-	task, err := c.s.TaskService.GetByID(ctx, boardID, taskGETuri.TaskID)
+	task, err := c.tasks.GetByID(ctx, boardID, taskGETuri.TaskID)
 	if err != nil {
 		if err == entity.ErrNotFound {
 			ctx.JSON(404, err.Error())
@@ -106,7 +106,7 @@ func (c *TaskController) DELETE(ctx *gin.Context) {
 		return
 	}
 
-	err := c.s.TaskService.Delete(ctx, taskDELETEQuery.TaskID)
+	err := c.tasks.Delete(ctx, taskDELETEQuery.TaskID)
 	if err != nil {
 		if err == entity.ErrNotFound {
 			ctx.JSON(404, err.Error())
@@ -134,7 +134,7 @@ func (c *TaskController) MOVE(ctx *gin.Context) {
 		return
 	}
 
-	task, err := c.s.TaskService.Move(ctx, boardID, taskMOVEQuery.TaskID, taskMOVE.ColumnDestenation)
+	task, err := c.tasks.Move(ctx, boardID, taskMOVEQuery.TaskID, taskMOVE.ColumnDestenation)
 	if err != nil {
 		if err == entity.ErrNotFound {
 			ctx.JSON(404, err.Error())
@@ -163,7 +163,7 @@ func (c *TaskController) PATCH(ctx *gin.Context) {
 		return
 	}
 
-	types, err := c.s.TypeService.GetByUserID(ctx, userID)
+	types, err := c.types.GetByUserID(ctx, userID)
 	if err != nil && err != entity.ErrNotFound {
 		ctx.JSON(500, err.Error())
 		return
@@ -183,7 +183,7 @@ func (c *TaskController) PATCH(ctx *gin.Context) {
 		TypeID:      taskPATCH.TypeID,
 	}
 
-	task, err := c.s.TaskService.Update(ctx, boardID, taskUpdate)
+	task, err := c.tasks.Update(ctx, boardID, taskUpdate)
 	if err != nil {
 		ctx.JSON(500, err.Error())
 		return

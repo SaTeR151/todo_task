@@ -19,7 +19,7 @@ func (c *ColumnController) POST(ctx *gin.Context) {
 		return
 	}
 
-	columns, err := c.s.ColumnService.GetByBoardID(ctx, boardID)
+	columns, err := c.columns.GetByBoardID(ctx, boardID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
@@ -36,7 +36,7 @@ func (c *ColumnController) POST(ctx *gin.Context) {
 		OderNumber: columnPOST.OrderNumber,
 	}
 
-	column, err := c.s.ColumnService.CreateColumn(ctx, columnCreate)
+	column, err := c.columns.CreateColumn(ctx, columnCreate)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
@@ -54,7 +54,7 @@ func (c *ColumnController) GET(ctx *gin.Context) {
 		return
 	}
 
-	columns, err := c.s.ColumnService.GetByID(ctx, boardID, columnGETQuery.ColumnID)
+	columns, err := c.columns.GetByID(ctx, boardID, columnGETQuery.ColumnID)
 	if err != nil {
 		if err == entity.ErrNotFound {
 			ctx.JSON(http.StatusNotFound, err.Error())
@@ -70,10 +70,10 @@ func (c *ColumnController) GET(ctx *gin.Context) {
 func (c *ColumnController) LIST(ctx *gin.Context) {
 	boardID := ctx.MustGet("board").(string)
 
-	columns, err := c.s.ColumnService.GetByBoardID(ctx, boardID)
+	columns, err := c.columns.GetByBoardID(ctx, boardID)
 	if err != nil {
 		if err == entity.ErrNotFound {
-			ctx.JSON(http.StatusNotFound, err.Error())
+			ctx.JSON(http.StatusOK, entity.Columns{})
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, err.Error())
@@ -92,7 +92,7 @@ func (c *ColumnController) DELETE(ctx *gin.Context) {
 		return
 	}
 
-	err := c.s.ColumnService.DeleteColumn(ctx, boardID, columnDELETEQuery.ColumnID)
+	err := c.columns.DeleteColumn(ctx, boardID, columnDELETEQuery.ColumnID)
 	if err != nil {
 		if err == entity.ErrNotFound {
 			ctx.JSON(http.StatusNotFound, err.Error())
@@ -120,7 +120,7 @@ func (c *ColumnController) PATCH(ctx *gin.Context) {
 		return
 	}
 
-	columns, err := c.s.ColumnService.GetByBoardID(ctx, boardID)
+	columns, err := c.columns.GetByBoardID(ctx, boardID)
 	if err != nil {
 		if err == entity.ErrNotFound {
 			ctx.JSON(http.StatusNotFound, err.Error())
@@ -143,7 +143,7 @@ func (c *ColumnController) PATCH(ctx *gin.Context) {
 		OrderNumber: req.OrderNumber,
 	}
 
-	column, err := c.s.ColumnService.UpdateColumn(ctx, boardID, columnUpdate)
+	column, err := c.columns.UpdateColumn(ctx, boardID, columnUpdate)
 	if err != nil {
 		if err == entity.ErrNotFound {
 			ctx.JSON(http.StatusNotFound, err.Error())
@@ -165,7 +165,7 @@ func (c *ColumnController) SWAP(ctx *gin.Context) {
 		return
 	}
 
-	columnA, err := c.s.ColumnService.GetByID(ctx, boardID, columnSWAP.ColumnIDA)
+	columnA, err := c.columns.GetByID(ctx, boardID, columnSWAP.ColumnIDA)
 	if err != nil {
 		if err == entity.ErrNotFound {
 			ctx.JSON(http.StatusNotFound, err.Error())
@@ -175,7 +175,7 @@ func (c *ColumnController) SWAP(ctx *gin.Context) {
 		return
 	}
 
-	columnB, err := c.s.ColumnService.GetByID(ctx, boardID, columnSWAP.ColumnIDB)
+	columnB, err := c.columns.GetByID(ctx, boardID, columnSWAP.ColumnIDB)
 	if err != nil {
 		if err == entity.ErrNotFound {
 			ctx.JSON(http.StatusNotFound, err.Error())
@@ -190,7 +190,7 @@ func (c *ColumnController) SWAP(ctx *gin.Context) {
 		return
 	}
 
-	err = c.s.ColumnService.SwapColumns(ctx, boardID, columnSWAP.ColumnIDA, columnSWAP.ColumnIDB)
+	err = c.columns.SwapColumns(ctx, boardID, columnSWAP.ColumnIDA, columnSWAP.ColumnIDB)
 	if err != nil {
 		if err == entity.ErrNotFound {
 			ctx.JSON(http.StatusNotFound, err.Error())

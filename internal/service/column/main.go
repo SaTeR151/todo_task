@@ -4,9 +4,19 @@ import (
 	"context"
 
 	"github.com/sater-151/todo-list/internal/entity"
-	"github.com/sater-151/todo-list/internal/repository/postgres"
 	"github.com/sater-151/todo-list/internal/service/task"
 )
+
+type Repository interface {
+	GetColumns(ctx context.Context, opts entity.GetColumnsOpts) (entity.Columns, error)
+	CreateColumn(ctx context.Context, columnCreate entity.ColumnCreate) (string, error)
+	UpdateColumn(ctx context.Context, columnUpdate entity.ColumnUpdate) error
+	DeleteColumn(ctx context.Context, columnID string) error
+}
+
+type TaskRepository interface {
+	Get(ctx context.Context, opts entity.GetTasksOpts) (entity.Tasks, error)
+}
 
 type Column interface {
 	Get(ctx context.Context, opts entity.GetColumnsOpts) (columns entity.Columns, err error)
@@ -18,9 +28,10 @@ type Column interface {
 	SwapColumns(ctx context.Context, boardID, columnIDA, columnIDB string) (err error)
 }
 
-func New(repo *postgres.Repository, taskService task.Task) Column {
+func New(repo Repository, taskRepo TaskRepository, taskService task.Task) Column {
 	return &ColumnService{
-		repo:        repo,
+		columns:     repo,
+		tasks:       taskRepo,
 		taskService: taskService,
 	}
 }

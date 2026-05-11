@@ -4,16 +4,16 @@ import (
 	"context"
 
 	"github.com/sater-151/todo-list/internal/entity"
-	"github.com/sater-151/todo-list/internal/repository/postgres"
 	"github.com/sater-151/todo-list/pkg/utils"
 )
 
 type BoardService struct {
-	repo *postgres.Repository
+	boards  BoardRepository
+	columns ColumnCreator
 }
 
 func (s *BoardService) Get(ctx context.Context, opts entity.GetBoardsOpts) (boards entity.Boards, err error) {
-	boards, err = s.repo.Board.Get(ctx, opts)
+	boards, err = s.boards.Get(ctx, opts)
 	if err != nil {
 		return
 	}
@@ -45,7 +45,7 @@ func (s *BoardService) GetByUserID(ctx context.Context, userID string) (boards e
 func (s *BoardService) Create(ctx context.Context, boardCreate entity.BoardCreate) (board entity.Board, err error) {
 	defer utils.AddFuncLabel("[service-create-board]", err)
 
-	newBoardID, err := s.repo.Board.Create(ctx, boardCreate)
+	newBoardID, err := s.boards.Create(ctx, boardCreate)
 	if err != nil {
 		return
 	}
@@ -57,7 +57,7 @@ func (s *BoardService) Create(ctx context.Context, boardCreate entity.BoardCreat
 		OderNumber: -1,
 	}
 
-	_, err = s.repo.Column.CreateColumn(ctx, columnCreate)
+	_, err = s.columns.CreateColumn(ctx, columnCreate)
 	if err != nil {
 		return
 	}
@@ -68,7 +68,7 @@ func (s *BoardService) Create(ctx context.Context, boardCreate entity.BoardCreat
 func (s *BoardService) Update(ctx context.Context, userID string, boardUpdate entity.BoardUpdate) (board entity.Board, err error) {
 	defer utils.AddFuncLabel("[service-update-board]", err)
 
-	if err = s.repo.Board.Update(ctx, boardUpdate); err != nil {
+	if err = s.boards.Update(ctx, boardUpdate); err != nil {
 		return
 	}
 
@@ -83,5 +83,5 @@ func (s *BoardService) Delete(ctx context.Context, userID, boardID string) (err 
 		return
 	}
 
-	return s.repo.Board.Delete(ctx, boardID)
+	return s.boards.Delete(ctx, boardID)
 }

@@ -4,8 +4,18 @@ import (
 	"context"
 
 	"github.com/sater-151/todo-list/internal/entity"
-	"github.com/sater-151/todo-list/internal/repository/postgres"
 )
+
+type BoardRepository interface {
+	Get(ctx context.Context, opts entity.GetBoardsOpts) (entity.Boards, error)
+	Create(ctx context.Context, boardCreate entity.BoardCreate) (string, error)
+	Update(ctx context.Context, boardUpdate entity.BoardUpdate) error
+	Delete(ctx context.Context, boardID string) error
+}
+
+type ColumnCreator interface {
+	CreateColumn(ctx context.Context, columnCreate entity.ColumnCreate) (string, error)
+}
 
 type Board interface {
 	Get(ctx context.Context, opts entity.GetBoardsOpts) (boards entity.Boards, err error)
@@ -16,8 +26,9 @@ type Board interface {
 	Delete(ctx context.Context, userID, boardID string) (err error)
 }
 
-func New(repo *postgres.Repository) Board {
+func New(boardRepo BoardRepository, columnRepo ColumnCreator) Board {
 	return &BoardService{
-		repo: repo,
+		boards:  boardRepo,
+		columns: columnRepo,
 	}
 }

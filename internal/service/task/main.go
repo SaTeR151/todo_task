@@ -4,8 +4,30 @@ import (
 	"context"
 
 	"github.com/sater-151/todo-list/internal/entity"
-	"github.com/sater-151/todo-list/internal/repository/postgres"
 )
+
+type BoardRepository interface {
+	Get(ctx context.Context, opts entity.GetBoardsOpts) (entity.Boards, error)
+}
+
+type ColumnRepository interface {
+	GetColumns(ctx context.Context, opts entity.GetColumnsOpts) (entity.Columns, error)
+}
+
+type TypeRepository interface {
+	Get(ctx context.Context, opts entity.GetTypesOpts) (entity.Types, error)
+}
+
+type Repository interface {
+	Get(ctx context.Context, opts entity.GetTasksOpts) (entity.Tasks, error)
+	Create(ctx context.Context, taskCreate entity.TaskCreate) (string, error)
+	Update(ctx context.Context, taskUpdate entity.TaskUpdate) error
+	Delete(ctx context.Context, taskID string) error
+}
+
+type MoveEventRepository interface {
+	Create(ctx context.Context, moveEventCreate entity.MoveEventCreate) error
+}
 
 type Task interface {
 	Get(ctx context.Context, boardID string, opts entity.GetTasksOpts) (res entity.Tasks, err error)
@@ -19,8 +41,18 @@ type Task interface {
 	Move(ctx context.Context, boardID, taskID, newColumnID string) (res entity.Task, err error)
 }
 
-func New(repo *postgres.Repository) Task {
+func New(
+	boardRepo BoardRepository,
+	columnRepo ColumnRepository,
+	typeRepo TypeRepository,
+	taskRepo Repository,
+	moveEventRepo MoveEventRepository,
+) Task {
 	return &TaskService{
-		repo: repo,
+		boards:     boardRepo,
+		columns:    columnRepo,
+		types:      typeRepo,
+		tasks:      taskRepo,
+		moveEvents: moveEventRepo,
 	}
 }

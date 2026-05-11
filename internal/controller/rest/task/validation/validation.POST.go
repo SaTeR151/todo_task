@@ -17,12 +17,16 @@ func ValidateTaskCreate(taskCreate dto.TaskPOST, boardColumns entity.Columns, us
 	}
 
 	if taskCreate.ColumnID != "" {
+		columnFound := false
 		for _, column := range boardColumns {
 			if column.ID == taskCreate.ColumnID {
-				return nil
+				columnFound = true
+				break
 			}
 		}
-		return errors.New("column_id incorrect")
+		if !columnFound {
+			return errors.New("column_id incorrect")
+		}
 	}
 
 	if len(taskCreate.Description) > 300 {
@@ -30,12 +34,16 @@ func ValidateTaskCreate(taskCreate dto.TaskPOST, boardColumns entity.Columns, us
 	}
 
 	if taskCreate.TypeID != "" {
+		typeFound := false
 		for _, taskType := range userTypes {
 			if taskType.ID == taskCreate.TypeID {
-				return nil
+				typeFound = true
+				break
 			}
 		}
-		return errors.New("type_id incorrect")
+		if !typeFound {
+			return errors.New("type_id incorrect")
+		}
 	}
 
 	return nil

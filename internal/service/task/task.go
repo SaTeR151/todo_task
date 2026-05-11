@@ -6,16 +6,19 @@ import (
 	"slices"
 
 	"github.com/sater-151/todo-list/internal/entity"
-	"github.com/sater-151/todo-list/internal/repository/postgres"
 	"github.com/sater-151/todo-list/pkg/utils"
 )
 
 type TaskService struct {
-	repo *postgres.Repository
+	boards     BoardRepository
+	columns    ColumnRepository
+	types      TypeRepository
+	tasks      Repository
+	moveEvents MoveEventRepository
 }
 
 func (s *TaskService) Get(ctx context.Context, boardID string, opts entity.GetTasksOpts) (tasks entity.Tasks, err error) {
-	columns, err := s.repo.Column.GetColumns(ctx, entity.GetColumnsOpts{BoardID: boardID})
+	columns, err := s.columns.GetColumns(ctx, entity.GetColumnsOpts{BoardID: boardID})
 	if err != nil {
 		return
 	}
@@ -28,7 +31,7 @@ func (s *TaskService) Get(ctx context.Context, boardID string, opts entity.GetTa
 
 	opts.ColumnIDs = append(opts.ColumnIDs, columnIDs...)
 
-	tasks, err = s.repo.Task.Get(ctx, opts)
+	tasks, err = s.tasks.Get(ctx, opts)
 	if err != nil {
 		return
 	}
@@ -41,7 +44,7 @@ func (s *TaskService) Get(ctx context.Context, boardID string, opts entity.GetTa
 }
 
 func (s *TaskService) GetByID(ctx context.Context, boardID, taskID string) (res entity.Task, err error) {
-	columns, err := s.repo.Column.GetColumns(ctx, entity.GetColumnsOpts{BoardID: boardID})
+	columns, err := s.columns.GetColumns(ctx, entity.GetColumnsOpts{BoardID: boardID})
 	if err != nil {
 		return
 	}
@@ -61,7 +64,7 @@ func (s *TaskService) GetByID(ctx context.Context, boardID, taskID string) (res 
 }
 
 func (s *TaskService) GetByColumnID(ctx context.Context, boardID, columnID string) (res entity.Tasks, err error) {
-	columns, err := s.repo.Column.GetColumns(ctx, entity.GetColumnsOpts{BoardID: boardID})
+	columns, err := s.columns.GetColumns(ctx, entity.GetColumnsOpts{BoardID: boardID})
 	if err != nil {
 		return
 	}
@@ -94,7 +97,7 @@ func (s *TaskService) GetByTypeID(ctx context.Context, boardID, typeID string) (
 }
 
 func (s *TaskService) GetByBoardID(ctx context.Context, boardID string) (res entity.Tasks, err error) {
-	columns, err := s.repo.Column.GetColumns(ctx, entity.GetColumnsOpts{BoardID: boardID})
+	columns, err := s.columns.GetColumns(ctx, entity.GetColumnsOpts{BoardID: boardID})
 	if err != nil {
 		return
 	}
@@ -116,7 +119,7 @@ func (s *TaskService) GetByBoardID(ctx context.Context, boardID string) (res ent
 func (s *TaskService) Create(ctx context.Context, boardID string, taskCreate entity.TaskCreate) (res entity.Task, err error) {
 	defer utils.AddFuncLabel("[service-create-task]", err)
 
-	boards, err := s.repo.Board.Get(ctx, entity.GetBoardsOpts{ID: boardID})
+	boards, err := s.boards.Get(ctx, entity.GetBoardsOpts{ID: boardID})
 	if err != nil {
 		return
 	}
@@ -128,9 +131,13 @@ func (s *TaskService) Create(ctx context.Context, boardID string, taskCreate ent
 	board := boards[0]
 
 	if taskCreate.ColumnID == "" {
-		columns, err := s.repo.Column.GetColumns(ctx, entity.GetColumnsOpts{BoardID: boardID, Name: "backlog"})
+		columns, err := s.columns.GetColumns(ctx, entity.GetColumnsOpts{BoardID: boardID, Name: "backlog"})
 		if err != nil {
 			return entity.Task{}, err
+		}
+
+		if len(columns) == 0 {
+			return entity.Task{}, entity.ErrNotFound
 		}
 
 		backlogColumn := columns[0]
@@ -139,7 +146,7 @@ func (s *TaskService) Create(ctx context.Context, boardID string, taskCreate ent
 	}
 
 	if taskCreate.TypeID == "" {
-		types, err := s.repo.Type.Get(ctx, entity.GetTypesOpts{UserID: board.UserID, Name: "null"})
+		types, err := s.types.Get(ctx, entity.GetTypesOpts{UserID: board.UserID, Name: "null"})
 		if err != nil {
 			return entity.Task{}, err
 		}
@@ -151,7 +158,7 @@ func (s *TaskService) Create(ctx context.Context, boardID string, taskCreate ent
 		taskCreate.TypeID = types[0].ID
 	}
 
-	newTypeID, err := s.repo.Task.Create(ctx, taskCreate)
+	newTypeID, err := s.tasks.Create(ctx, taskCreate)
 	if err != nil {
 		return
 	}
@@ -167,7 +174,7 @@ func (s *TaskService) Update(ctx context.Context, boardID string, taskUpdate ent
 		return
 	}
 
-	if err = s.repo.Task.Update(ctx, taskUpdate); err != nil {
+	if err = s.tasks.Update(ctx, taskUpdate); err != nil {
 		return
 	}
 
@@ -177,13 +184,13 @@ func (s *TaskService) Update(ctx context.Context, boardID string, taskUpdate ent
 func (s *TaskService) Delete(ctx context.Context, taskID string) (err error) {
 	defer utils.AddFuncLabel("[service-delete-task]", err)
 
-	return s.repo.Task.Delete(ctx, taskID)
+	return s.tasks.Delete(ctx, taskID)
 }
 
 func (s *TaskService) Move(ctx context.Context, boardID, taskID, newColumnID string) (res entity.Task, err error) {
 	defer utils.AddFuncLabel("[service-move-task]", err)
 
-	columns, err := s.repo.Column.GetColumns(ctx, entity.GetColumnsOpts{BoardID: boardID, ID: newColumnID})
+	columns, err := s.columns.GetColumns(ctx, entity.GetColumnsOpts{BoardID: boardID, ID: newColumnID})
 	if err != nil {
 		return
 	}
@@ -203,14 +210,16 @@ func (s *TaskService) Move(ctx context.Context, boardID, taskID, newColumnID str
 		FromColumnID: task.ColumnID,
 	}
 
-	s.repo.MoveEvent.Create(ctx, moveEventCreate)
+	if err = s.moveEvents.Create(ctx, moveEventCreate); err != nil {
+		return
+	}
 
 	taskUpdate := entity.TaskUpdate{
 		ID:       taskID,
 		ColumnID: &newColumnID,
 	}
 
-	if err = s.repo.Task.Update(ctx, taskUpdate); err != nil {
+	if err = s.tasks.Update(ctx, taskUpdate); err != nil {
 		return
 	}
 

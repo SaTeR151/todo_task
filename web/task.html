@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <script>
+      (() => {
+        let theme = "light";
+        try {
+          theme = localStorage.getItem("todo_task.theme") === "dark" ? "dark" : "light";
+        } catch {}
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
+    <link rel="stylesheet" href="/css/style.css">
+    <title>Задача - Планировщик задач</title>
+  </head>
+  <body data-page="task">
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/home">
+          <span class="brand-mark">T</span>
+          <span>Планировщик задач</span>
+        </a>
+        <nav class="nav">
+          <a class="ghost-button" id="board-link" href="/home">Канбан</a>
+          <a class="ghost-button" id="task-overview-link" href="/home">Обзор</a>
+          <button class="danger-button" type="button" data-logout>Выйти</button>
+        </nav>
+      </header>
+      <main class="content">
+        <section class="page-title">
+          <div>
+            <h1 id="task-title">Задача</h1>
+            <p id="task-caption">Карточка задачи и ее свойства.</p>
+          </div>
+        </section>
+        <div class="alert" data-alert></div>
+        <section class="task-detail">
+          <div class="panel">
+            <form class="form-grid" id="task-form"></form>
+          </div>
+          <aside class="panel">
+            <h2>Данные</h2>
+            <div class="stack" id="task-meta"></div>
+            <div class="button-row">
+              <button class="danger-button symbol-button" id="task-delete" type="button" aria-label="Удалить задачу" title="Удалить задачу">
+                <span aria-hidden="true">X</span>
+              </button>
+            </div>
+          </aside>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>

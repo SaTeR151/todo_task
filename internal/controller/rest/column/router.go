@@ -3,24 +3,26 @@ package column
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sater-151/todo-list/internal/controller/rest/middlewares"
-	"github.com/sater-151/todo-list/internal/service"
+	boardservice "github.com/sater-151/todo-list/internal/service/board"
+	columnservice "github.com/sater-151/todo-list/internal/service/column"
+	userservice "github.com/sater-151/todo-list/internal/service/user"
 )
 
 type ColumnController struct {
-	s *service.TodoList
+	columns columnservice.Column
 }
 
-func Router(s *service.TodoList, router *gin.RouterGroup) {
+func Router(columns columnservice.Column, boards boardservice.Board, users userservice.User, router *gin.RouterGroup) {
 	columnsRouter := router.Group("/boards/:board/columns")
 
 	ctrl := &ColumnController{
-		s: s,
+		columns: columns,
 	}
 
-	columnsRouter.GET("/", middlewares.CheckAuth(s.UserService), middlewares.CheckBoard(s.BoardService), ctrl.LIST)
-	columnsRouter.GET("/:column", middlewares.CheckAuth(s.UserService), middlewares.CheckBoard(s.BoardService), ctrl.GET)
-	columnsRouter.POST("/", middlewares.CheckAuth(s.UserService), middlewares.CheckBoard(s.BoardService), ctrl.POST)
-	columnsRouter.PATCH("/:column", middlewares.CheckAuth(s.UserService), middlewares.CheckBoard(s.BoardService), ctrl.PATCH)
-	columnsRouter.DELETE("/:column", middlewares.CheckAuth(s.UserService), middlewares.CheckBoard(s.BoardService), ctrl.DELETE)
-	columnsRouter.PUT("/swap", middlewares.CheckAuth(s.UserService), middlewares.CheckBoard(s.BoardService), ctrl.SWAP)
+	columnsRouter.GET("/", middlewares.CheckAuth(users), middlewares.CheckBoard(boards), ctrl.LIST)
+	columnsRouter.GET("/:column", middlewares.CheckAuth(users), middlewares.CheckBoard(boards), ctrl.GET)
+	columnsRouter.POST("/", middlewares.CheckAuth(users), middlewares.CheckBoard(boards), ctrl.POST)
+	columnsRouter.PATCH("/:column", middlewares.CheckAuth(users), middlewares.CheckBoard(boards), ctrl.PATCH)
+	columnsRouter.DELETE("/:column", middlewares.CheckAuth(users), middlewares.CheckBoard(boards), ctrl.DELETE)
+	columnsRouter.PUT("/swap", middlewares.CheckAuth(users), middlewares.CheckBoard(boards), ctrl.SWAP)
 }

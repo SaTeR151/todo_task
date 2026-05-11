@@ -1,0 +1,13 @@
+.git
+.gitignore
+.dockerignore
+.idea
+.vscode
+bin
+vendor
+*.log
+*.out
+*.exe
+main
+portal
+tmp

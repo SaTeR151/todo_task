@@ -3,23 +3,24 @@ package board
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sater-151/todo-list/internal/controller/rest/middlewares"
-	"github.com/sater-151/todo-list/internal/service"
+	boardservice "github.com/sater-151/todo-list/internal/service/board"
+	userservice "github.com/sater-151/todo-list/internal/service/user"
 )
 
 type BoardController struct {
-	s *service.TodoList
+	boards boardservice.Board
 }
 
-func Router(s *service.TodoList, router *gin.RouterGroup) {
+func Router(boards boardservice.Board, users userservice.User, router *gin.RouterGroup) {
 	boardsRouter := router.Group("/boards")
 
 	ctrl := BoardController{
-		s: s,
+		boards: boards,
 	}
 
-	boardsRouter.POST("/", middlewares.CheckAuth(s.UserService), ctrl.POST)
-	boardsRouter.GET("/", middlewares.CheckAuth(s.UserService), ctrl.LIST)
-	boardsRouter.GET("/:board", middlewares.CheckAuth(s.UserService), ctrl.GET)
-	boardsRouter.PATCH("/:board", middlewares.CheckAuth(s.UserService), ctrl.PATCH)
-	boardsRouter.DELETE("/:board", middlewares.CheckAuth(s.UserService), ctrl.DELETE)
+	boardsRouter.POST("/", middlewares.CheckAuth(users), ctrl.POST)
+	boardsRouter.GET("/", middlewares.CheckAuth(users), ctrl.LIST)
+	boardsRouter.GET("/:board", middlewares.CheckAuth(users), ctrl.GET)
+	boardsRouter.PATCH("/:board", middlewares.CheckAuth(users), ctrl.PATCH)
+	boardsRouter.DELETE("/:board", middlewares.CheckAuth(users), ctrl.DELETE)
 }

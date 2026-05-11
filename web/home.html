@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <script>
+      (() => {
+        let theme = "light";
+        try {
+          theme = localStorage.getItem("todo_task.theme") === "dark" ? "dark" : "light";
+        } catch {}
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
+    <link rel="stylesheet" href="/css/style.css">
+    <title>Кабинет - Планировщик задач</title>
+  </head>
+  <body data-page="home">
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/home">
+          <span class="brand-mark">T</span>
+          <span>Планировщик задач</span>
+        </a>
+        <nav class="nav">
+          <a class="ghost-button" href="/settings">Настройки</a>
+          <button class="danger-button" type="button" data-logout>Выйти</button>
+        </nav>
+      </header>
+      <main class="content">
+        <section class="page-title">
+          <div>
+            <h1>Кабинет</h1>
+            <p id="user-caption">Загрузка пользователя...</p>
+          </div>
+        </section>
+        <div class="alert" data-alert></div>
+        <section class="workspace-grid">
+          <div>
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Доски</h2>
+                  <p class="panel-subtitle">Создавайте рабочие пространства и открывайте канбан или общий обзор.</p>
+                </div>
+              </div>
+              <form class="form-grid two" id="board-create-form">
+                <label class="field">
+                  <span>Название доски</span>
+                  <input class="input" name="name" maxlength="50" required>
+                </label>
+                <button class="button symbol-button" type="submit" aria-label="Создать доску" title="Создать доску">
+                  <span aria-hidden="true">+</span>
+                </button>
+              </form>
+              <div class="cards-grid" id="boards-list"></div>
+            </section>
+          </div>
+          <aside>
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Типы задач</h2>
+                  <p class="panel-subtitle">Типы используются в карточках и общем обзоре.</p>
+                </div>
+              </div>
+              <form class="form-grid three" id="type-create-form">
+                <label class="field">
+                  <span>Код типа</span>
+                  <input class="input" name="name" maxlength="10" pattern="[a-z0-9_.-]+" required>
+                </label>
+                <label class="field">
+                  <span>Цвет</span>
+                  <input class="input" name="color" type="color" value="#16a34a" required>
+                </label>
+                <button class="button symbol-button" type="submit" aria-label="Добавить тип" title="Добавить тип">
+                  <span aria-hidden="true">+</span>
+                </button>
+              </form>
+              <div class="stack" id="types-list"></div>
+            </section>
+            <section class="panel">
+              <h2>Аккаунт</h2>
+              <p class="panel-subtitle">Пароль можно поменять на странице настроек.</p>
+              <div class="button-row">
+                <a class="ghost-button symbol-button" href="/settings" aria-label="Сменить пароль" title="Сменить пароль">
+                  <span aria-hidden="true">*</span>
+                </a>
+              </div>
+            </section>
+          </aside>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>

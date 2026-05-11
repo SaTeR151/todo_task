@@ -8,12 +8,12 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sater-151/todo-list/internal/entity"
-	"github.com/sater-151/todo-list/internal/repository/postgres"
 	"github.com/sater-151/todo-list/pkg/utils"
 )
 
 type UserService struct {
-	repo      *postgres.Repository
+	users     Repository
+	types     TypeCreator
 	secretKey string
 }
 
@@ -25,7 +25,7 @@ type UserClaims struct {
 func (s *UserService) Create(ctx context.Context, userCreate entity.UserCreate) (res entity.User, err error) {
 	defer utils.AddFuncLabel("[service-create-user]", err)
 
-	newUserID, err := s.repo.User.Create(ctx, userCreate)
+	newUserID, err := s.users.Create(ctx, userCreate)
 	if err != nil {
 		return
 	}
@@ -41,7 +41,7 @@ func (s *UserService) Create(ctx context.Context, userCreate entity.UserCreate) 
 		Color:  "#FFFFFF",
 	}
 
-	_, err = s.repo.Type.Create(ctx, nullType)
+	_, err = s.types.Create(ctx, nullType)
 	if err != nil {
 		return
 	}
@@ -51,19 +51,19 @@ func (s *UserService) Create(ctx context.Context, userCreate entity.UserCreate) 
 
 func (s *UserService) Update(ctx context.Context, userUpdate entity.UserUpdate) (res entity.User, err error) {
 	if userUpdate.Login != nil || userUpdate.RefreshToken != nil {
-		if err = s.repo.User.Update(ctx, userUpdate); err != nil {
+		if err = s.users.Update(ctx, userUpdate); err != nil {
 			return
 		}
 	}
 
 	if userUpdate.Password != nil {
-		err = s.repo.User.UpdatePassword(ctx, userUpdate.ID, *userUpdate.Password)
+		err = s.users.UpdatePassword(ctx, userUpdate.ID, *userUpdate.Password)
 		if err != nil {
 			return
 		}
 	}
 
-	users, err := s.repo.User.Get(ctx, entity.GetUsersOpts{ID: userUpdate.ID})
+	users, err := s.Get(ctx, entity.GetUsersOpts{ID: userUpdate.ID})
 	if err != nil {
 		return
 	}
@@ -77,15 +77,15 @@ func (s *UserService) Delete(ctx context.Context, userID string) error {
 		return err
 	}
 
-	return s.repo.User.Delete(ctx, userID)
+	return s.users.Delete(ctx, userID)
 }
 
 func (s *UserService) GetRefreshToken(ctx context.Context, userID string) (res string, err error) {
-	return s.repo.User.GetRefreshToken(ctx, userID)
+	return s.users.GetRefreshToken(ctx, userID)
 }
 
 func (s *UserService) Get(ctx context.Context, opts entity.GetUsersOpts) (users []entity.User, err error) {
-	users, err = s.repo.User.Get(ctx, opts)
+	users, err = s.users.Get(ctx, opts)
 	if err != nil {
 		return
 	}
@@ -98,7 +98,7 @@ func (s *UserService) Get(ctx context.Context, opts entity.GetUsersOpts) (users 
 }
 
 func (s *UserService) GetPassword(ctx context.Context, userID string) (res string, err error) {
-	userPassword, err := s.repo.User.GetPassword(ctx, userID)
+	userPassword, err := s.users.GetPassword(ctx, userID)
 	if err != nil {
 		return
 	}
@@ -140,8 +140,15 @@ func (s *UserService) ParseToken(ctx context.Context, token string) (string, *en
 
 	var userID string
 
-	if claims, ok := jwtToken.Claims.(jwt.MapClaims); ok && jwtToken.Valid {
-		userID = claims["user_id"].(string)
+	if claims, ok := jwtToken.Claims.(jwt.MapClaims); ok {
+		claimUserID, ok := claims["user_id"].(string)
+		if !ok || claimUserID == "" {
+			return "", &entity.AppError{
+				Err:       fmt.Errorf("invalid-token-claims"),
+				ErrStatus: entity.ErrBadAuth,
+			}
+		}
+		userID = claimUserID
 	}
 
 	return userID, nil
@@ -211,7 +218,7 @@ func (s *UserService) Auth(ctx context.Context, login, password string) (string,
 		RefreshToken: &refreshToken,
 	}
 
-	err = s.repo.User.Update(ctx, userUpdate)
+	err = s.users.Update(ctx, userUpdate)
 	if err != nil {
 		return "", "", &entity.AppError{
 			Err:       err,

@@ -16,10 +16,10 @@ func (c *TypeController) GET(ctx *gin.Context) {
 		return
 	}
 
-	types, err := c.s.TypeService.GetByUserID(ctx, userID)
+	types, err := c.types.GetByUserID(ctx, userID)
 	if err != nil {
 		if err == entity.ErrNotFound {
-			ctx.JSON(404, err.Error())
+			ctx.JSON(200, entity.Types{})
 			return
 		}
 		ctx.JSON(500, err.Error())
@@ -32,10 +32,10 @@ func (c *TypeController) GET(ctx *gin.Context) {
 func (c *TypeController) LIST(ctx *gin.Context) {
 	userID := ctx.MustGet("user").(string)
 
-	types, err := c.s.TypeService.GetByUserID(ctx, userID)
+	types, err := c.types.GetByUserID(ctx, userID)
 	if err != nil {
 		if err == entity.ErrNotFound {
-			ctx.JSON(404, err.Error())
+			ctx.JSON(200, entity.Types{})
 			return
 		}
 		ctx.JSON(500, err.Error())
@@ -60,7 +60,7 @@ func (c *TypeController) POST(ctx *gin.Context) {
 		Color:  req.Color,
 	}
 
-	types, err := c.s.TypeService.GetByUserID(ctx, userID)
+	types, err := c.types.GetByUserID(ctx, userID)
 	if err != nil && err != entity.ErrNotFound {
 		ctx.JSON(500, err.Error())
 		return
@@ -71,7 +71,7 @@ func (c *TypeController) POST(ctx *gin.Context) {
 		return
 	}
 
-	taskType, err := c.s.TypeService.Create(ctx, typeCreate)
+	taskType, err := c.types.Create(ctx, typeCreate)
 	if err != nil {
 		ctx.JSON(500, err.Error())
 		return
@@ -101,7 +101,7 @@ func (c *TypeController) PATCH(ctx *gin.Context) {
 		Color: req.Color,
 	}
 
-	types, err := c.s.TypeService.GetByUserID(ctx, userID)
+	types, err := c.types.GetByUserID(ctx, userID)
 	if err != nil && err != entity.ErrNotFound {
 		ctx.JSON(500, err.Error())
 		return
@@ -119,7 +119,7 @@ func (c *TypeController) PATCH(ctx *gin.Context) {
 		return
 	}
 
-	updatedType, err := c.s.TypeService.Update(ctx, userID, typeUpdate)
+	updatedType, err := c.types.Update(ctx, userID, typeUpdate)
 	if err != nil {
 		ctx.JSON(500, err.Error())
 		return
@@ -135,7 +135,7 @@ func (c *TypeController) DELETE(ctx *gin.Context) {
 		return
 	}
 
-	err := c.s.TypeService.Delete(ctx, uri.TypeID)
+	err := c.types.Delete(ctx, uri.TypeID)
 	if err != nil {
 		ctx.JSON(500, err.Error())
 		return

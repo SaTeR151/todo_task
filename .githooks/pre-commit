@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+
+echo "running go test ./..."
+go test ./...
+

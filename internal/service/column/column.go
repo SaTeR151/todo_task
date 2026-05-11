@@ -4,19 +4,19 @@ import (
 	"context"
 
 	"github.com/sater-151/todo-list/internal/entity"
-	"github.com/sater-151/todo-list/internal/repository/postgres"
 	"github.com/sater-151/todo-list/internal/service/task"
 	"github.com/sater-151/todo-list/pkg/utils"
 )
 
 type ColumnService struct {
-	repo        *postgres.Repository
+	columns     Repository
+	tasks       TaskRepository
 	taskService task.Task
 }
 
 func (s *ColumnService) Get(ctx context.Context, opts entity.GetColumnsOpts) (columns entity.Columns, err error) {
 
-	columns, err = s.repo.Column.GetColumns(ctx, opts)
+	columns, err = s.columns.GetColumns(ctx, opts)
 	if err != nil {
 		return
 	}
@@ -44,7 +44,7 @@ func (s *ColumnService) GetByBoardID(ctx context.Context, boardID string) (colum
 func (s *ColumnService) CreateColumn(ctx context.Context, columnCreate entity.ColumnCreate) (column entity.Column, err error) {
 	defer utils.AddFuncLabel("[service-create-column]", err)
 
-	newColumnID, err := s.repo.Column.CreateColumn(ctx, columnCreate)
+	newColumnID, err := s.columns.CreateColumn(ctx, columnCreate)
 	if err != nil {
 		return
 	}
@@ -55,7 +55,7 @@ func (s *ColumnService) CreateColumn(ctx context.Context, columnCreate entity.Co
 func (s *ColumnService) UpdateColumn(ctx context.Context, boardID string, columnUpdate entity.ColumnUpdate) (column entity.Column, err error) {
 	defer utils.AddFuncLabel("[service-update-column]", err)
 
-	if err = s.repo.Column.UpdateColumn(ctx, columnUpdate); err != nil {
+	if err = s.columns.UpdateColumn(ctx, columnUpdate); err != nil {
 		return
 	}
 
@@ -65,7 +65,7 @@ func (s *ColumnService) UpdateColumn(ctx context.Context, boardID string, column
 func (s *ColumnService) DeleteColumn(ctx context.Context, boardID, columnID string) (err error) {
 	defer utils.AddFuncLabel("[service-delete-column]", err)
 
-	tasks, err := s.repo.Task.Get(ctx, entity.GetTasksOpts{ColumnID: columnID})
+	tasks, err := s.tasks.Get(ctx, entity.GetTasksOpts{ColumnID: columnID})
 	if err != nil {
 		return
 	}
@@ -93,7 +93,7 @@ func (s *ColumnService) DeleteColumn(ctx context.Context, boardID, columnID stri
 		}
 	}
 
-	return s.repo.Column.DeleteColumn(ctx, columnID)
+	return s.columns.DeleteColumn(ctx, columnID)
 }
 
 func (s *ColumnService) SwapColumns(ctx context.Context, boardID, columnIDA, columnIDB string) (err error) {
@@ -123,10 +123,10 @@ func (s *ColumnService) SwapColumns(ctx context.Context, boardID, columnIDA, col
 		OrderNumber: &orderColumnA,
 	}
 
-	if err = s.repo.Column.UpdateColumn(ctx, columnUpdateA); err != nil {
+	if err = s.columns.UpdateColumn(ctx, columnUpdateA); err != nil {
 		return
 	}
 
-	return s.repo.Column.UpdateColumn(ctx, columnUpdateB)
+	return s.columns.UpdateColumn(ctx, columnUpdateB)
 
 }

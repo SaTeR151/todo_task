@@ -1,4 +1,4 @@
-version: '3'
+version: '3.9'
 
 services:
 
@@ -10,8 +10,15 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: todo_task
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d todo_task"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   pgadmin:
     container_name: pgadmin4
@@ -21,29 +28,31 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: admin
     volumes:
-       - ./docker/pgadmin/servers.json:/pgadmin4/servers.json
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json
     ports:
       - "5050:80"
     depends_on:
       - postgres
 
-  # todo_task:
-  #   build: .
-  #   restart: always
-  #   command: ["-migrate", "-debug"]
-  #   environment:
-  #     DB_HOST: postgres
-  #     DB_NAME: todo_task
-  #     DB_USER: user
-  #     DB_PASSWORD: password
-  #     DB_PORT: 5432
-  #     DB_CRYPTO_KEY: secret
-  #     DB_SCHEMA: todo
-  #     SECRET_KEY: sater151
-  #   volumes:
-  #     - ./parameters.yaml:/app/parameters.yaml
-  #     - ./migrations:/app/migrations
-  #   ports:
-  #     - "8081:8081"
-  #   depends_on:
-  #     - postgres
+  todo_task:
+    container_name: todo_task
+    build: .
+    restart: always
+    command: ["-migrate"]
+    environment:
+      DB_HOST: postgres
+      DB_NAME: todo_task
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_PORT: 5432
+      DB_CRYPTO_KEY: secret
+      DB_SCHEMA: todo
+      SECRET_KEY: sater151
+    ports:
+      - "8080:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

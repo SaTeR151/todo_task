@@ -4,8 +4,14 @@ import (
 	"context"
 
 	"github.com/sater-151/todo-list/internal/entity"
-	"github.com/sater-151/todo-list/internal/repository/postgres"
 )
+
+type Repository interface {
+	Get(ctx context.Context, opts entity.GetTypesOpts) (entity.Types, error)
+	Create(ctx context.Context, typeCreate entity.TypeCreate) (string, error)
+	Update(ctx context.Context, typeUpdate entity.TypeUpdate) error
+	Delete(ctx context.Context, typeID string) error
+}
 
 type Type interface {
 	Create(ctx context.Context, typeCreate entity.TypeCreate) (res entity.Type, err error)
@@ -16,8 +22,8 @@ type Type interface {
 	GetByID(ctx context.Context, typeID string) (res entity.Type, err error)
 }
 
-func New(repo *postgres.Repository) Type {
+func New(repo Repository) Type {
 	return &TypeService{
-		repo: repo,
+		types: repo,
 	}
 }

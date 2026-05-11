@@ -5,9 +5,6 @@ config.yaml
 credentials_new.yaml
 credentials.yaml
 
-# Dockerfile
-Dockerfile
-
 # IDE
 .idea
 .vscode
@@ -17,6 +14,7 @@ Dockerfile
 
 # junk
 *.html
+!web/*.html
 *.out
 
 # logs

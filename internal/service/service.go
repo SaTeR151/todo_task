@@ -1,7 +1,6 @@
 package service
 
 import (
-	"github.com/sater-151/todo-list/internal/repository/postgres"
 	"github.com/sater-151/todo-list/internal/service/board"
 	"github.com/sater-151/todo-list/internal/service/column"
 	"github.com/sater-151/todo-list/internal/service/task"
@@ -17,12 +16,21 @@ type TodoList struct {
 	UserService   user.User
 }
 
-func New(repo *postgres.Repository, secretKey string) *TodoList {
-	boardService := board.New(repo)
-	taskService := task.New(repo)
-	columnService := column.New(repo, taskService)
-	userService := user.New(repo, secretKey)
-	typeService := type_service.New(repo)
+type Repositories struct {
+	Board     board.BoardRepository
+	Column    column.Repository
+	Type      type_service.Repository
+	Task      task.Repository
+	User      user.Repository
+	MoveEvent task.MoveEventRepository
+}
+
+func New(repo Repositories, secretKey string) *TodoList {
+	boardService := board.New(repo.Board, repo.Column)
+	taskService := task.New(repo.Board, repo.Column, repo.Type, repo.Task, repo.MoveEvent)
+	columnService := column.New(repo.Column, repo.Task, taskService)
+	userService := user.New(repo.User, repo.Type, secretKey)
+	typeService := type_service.New(repo.Type)
 	return &TodoList{
 		BoardService:  boardService,
 		ColumnService: columnService,

@@ -19,7 +19,7 @@ func (c *UserController) POST(ctx *gin.Context) {
 		Password: req.Password,
 	}
 
-	users, err := c.s.UserService.Get(ctx, entity.GetUsersOpts{})
+	users, err := c.users.Get(ctx, entity.GetUsersOpts{})
 	if err != nil && err != entity.ErrNotFound {
 		ctx.JSON(500, err.Error())
 		return
@@ -30,7 +30,7 @@ func (c *UserController) POST(ctx *gin.Context) {
 		return
 	}
 
-	user, err := c.s.UserService.Create(ctx, userCreate)
+	user, err := c.users.Create(ctx, userCreate)
 	if err != nil {
 		ctx.JSON(500, err.Error())
 		return
@@ -46,7 +46,7 @@ func (c *UserController) Auth(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, err := c.s.UserService.Auth(ctx, req.Login, req.Password)
+	accessToken, refreshToken, err := c.users.Auth(ctx, req.Login, req.Password)
 	if err != nil {
 
 		if err.IsNotFound() {
@@ -71,7 +71,7 @@ func (c *UserController) Auth(ctx *gin.Context) {
 func (c *UserController) Get(ctx *gin.Context) {
 	userId := ctx.MustGet("user").(string)
 
-	user, err := c.s.UserService.GetByID(ctx, userId)
+	user, err := c.users.GetByID(ctx, userId)
 	if err != nil {
 		ctx.JSON(500, err.Error())
 		return
@@ -89,7 +89,7 @@ func (c *UserController) ChangePassword(ctx *gin.Context) {
 		return
 	}
 
-	userCurrentPassword, err := c.s.UserService.GetPassword(ctx, userID)
+	userCurrentPassword, err := c.users.GetPassword(ctx, userID)
 	if err != nil {
 		ctx.JSON(500, err.Error())
 		return
@@ -107,7 +107,7 @@ func (c *UserController) ChangePassword(ctx *gin.Context) {
 		Password: &newPassword,
 	}
 
-	_, err = c.s.UserService.Update(ctx, userUpdate)
+	_, err = c.users.Update(ctx, userUpdate)
 	if err != nil {
 		ctx.JSON(500, err.Error())
 		return
@@ -125,7 +125,7 @@ func (c *UserController) RefreshToken(ctx *gin.Context) {
 		return
 	}
 
-	newAccessToken, err := c.s.UserService.RefreshToken(ctx, userID, req.RefreshToken)
+	newAccessToken, err := c.users.RefreshToken(ctx, userID, req.RefreshToken)
 	if err != nil {
 		if err.IsBadAuth() {
 			ctx.JSON(401, err.Error())
@@ -143,7 +143,7 @@ func (c *UserController) RefreshToken(ctx *gin.Context) {
 func (c *UserController) DELETE(ctx *gin.Context) {
 	userID := ctx.MustGet("user").(string)
 
-	err := c.s.UserService.Delete(ctx, userID)
+	err := c.users.Delete(ctx, userID)
 	if err != nil {
 		if err == entity.ErrNotFound {
 			ctx.JSON(404, err.Error())
@@ -166,7 +166,7 @@ func (c *UserController) LogOut(ctx *gin.Context) {
 		RefreshToken: &nullRefreshToken,
 	}
 
-	_, err := c.s.UserService.Update(ctx, userUpdate)
+	_, err := c.users.Update(ctx, userUpdate)
 	if err != nil {
 		ctx.JSON(500, err.Error())
 		return

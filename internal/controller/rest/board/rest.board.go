@@ -34,7 +34,7 @@ func (c *BoardController) POST(ctx *gin.Context) {
 		Name:   boardCreateDTO.Name,
 	}
 
-	board, err := c.s.BoardService.Create(ctx, boardCreate)
+	board, err := c.boards.Create(ctx, boardCreate)
 	if err != nil {
 		ctx.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -60,7 +60,7 @@ func (c *BoardController) GET(ctx *gin.Context) {
 		return
 	}
 
-	board, err := c.s.BoardService.GetByID(ctx, userID, query.BoardID)
+	board, err := c.boards.GetByID(ctx, userID, query.BoardID)
 	if err != nil {
 		ctx.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -78,8 +78,12 @@ func (c *BoardController) GET(ctx *gin.Context) {
 func (c *BoardController) LIST(ctx *gin.Context) {
 	userID := ctx.MustGet("user").(string)
 
-	boards, err := c.s.BoardService.GetByUserID(ctx, userID)
+	boards, err := c.boards.GetByUserID(ctx, userID)
 	if err != nil {
+		if err == entity.ErrNotFound {
+			ctx.JSON(200, entity.Boards{})
+			return
+		}
 		ctx.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
@@ -102,7 +106,7 @@ func (c *BoardController) PATCH(ctx *gin.Context) {
 		return
 	}
 
-	boards, err := c.s.BoardService.GetByUserID(ctx, userID)
+	boards, err := c.boards.GetByUserID(ctx, userID)
 	if err != nil && err != entity.ErrNotFound {
 		ctx.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -120,7 +124,7 @@ func (c *BoardController) PATCH(ctx *gin.Context) {
 		Name: req.Name,
 	}
 
-	board, err := c.s.BoardService.Update(ctx, userID, boardUpdate)
+	board, err := c.boards.Update(ctx, userID, boardUpdate)
 	if err != nil {
 		ctx.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -138,7 +142,7 @@ func (c *BoardController) DELETE(ctx *gin.Context) {
 		return
 	}
 
-	err := c.s.BoardService.Delete(ctx, userID, boardDELETEQuery.BoardID)
+	err := c.boards.Delete(ctx, userID, boardDELETEQuery.BoardID)
 	if err != nil {
 		ctx.JSON(500, gin.H{"error": err.Error()})
 		return

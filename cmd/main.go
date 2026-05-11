@@ -63,9 +63,22 @@ func main() {
 		logrus.Fatalf("Ошибка при инициализации репозитория: %s", err)
 	}
 
-	todoTask := service.New(postgresRepo, appSettings.Config.SecretKey)
+	todoTask := service.New(service.Repositories{
+		Board:     postgresRepo.Board,
+		Column:    postgresRepo.Column,
+		Type:      postgresRepo.Type,
+		Task:      postgresRepo.Task,
+		User:      postgresRepo.User,
+		MoveEvent: postgresRepo.MoveEvent,
+	}, appSettings.Config.SecretKey)
 
-	rst := rest.New(todoTask)
+	rst := rest.New(rest.Services{
+		BoardService:  todoTask.BoardService,
+		ColumnService: todoTask.ColumnService,
+		TaskService:   todoTask.TaskService,
+		TypeService:   todoTask.TypeService,
+		UserService:   todoTask.UserService,
+	})
 
 	srv := new(server.Server)
 

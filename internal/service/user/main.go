@@ -4,8 +4,21 @@ import (
 	"context"
 
 	"github.com/sater-151/todo-list/internal/entity"
-	"github.com/sater-151/todo-list/internal/repository/postgres"
 )
+
+type Repository interface {
+	Create(ctx context.Context, userCreate entity.UserCreate) (string, error)
+	Update(ctx context.Context, userUpdate entity.UserUpdate) error
+	UpdatePassword(ctx context.Context, userID, newPassword string) error
+	Delete(ctx context.Context, userID string) error
+	Get(ctx context.Context, opts entity.GetUsersOpts) (entity.Users, error)
+	GetRefreshToken(ctx context.Context, userID string) (string, error)
+	GetPassword(ctx context.Context, userID string) (string, error)
+}
+
+type TypeCreator interface {
+	Create(ctx context.Context, typeCreate entity.TypeCreate) (string, error)
+}
 
 type User interface {
 	Create(ctx context.Context, userCreate entity.UserCreate) (res entity.User, err error)
@@ -21,9 +34,10 @@ type User interface {
 	RefreshToken(ctx context.Context, userID, refreshToken string) (accessToken string, appErr *entity.AppError)
 }
 
-func New(repo *postgres.Repository, secretKey string) User {
+func New(userRepo Repository, typeRepo TypeCreator, secretKey string) User {
 	return &UserService{
-		repo:      repo,
+		users:     userRepo,
+		types:     typeRepo,
 		secretKey: secretKey,
 	}
 }

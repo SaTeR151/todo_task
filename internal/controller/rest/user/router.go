@@ -3,25 +3,25 @@ package user
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sater-151/todo-list/internal/controller/rest/middlewares"
-	"github.com/sater-151/todo-list/internal/service"
+	userservice "github.com/sater-151/todo-list/internal/service/user"
 )
 
 type UserController struct {
-	s *service.TodoList
+	users userservice.User
 }
 
-func Router(s *service.TodoList, router *gin.RouterGroup) {
+func Router(users userservice.User, router *gin.RouterGroup) {
 	userRouter := router.Group("/user")
 
 	ctrl := UserController{
-		s: s,
+		users: users,
 	}
 
-	userRouter.GET("/", middlewares.CheckAuth(s.UserService), ctrl.Get)
+	userRouter.GET("/", middlewares.CheckAuth(users), ctrl.Get)
 	userRouter.POST("/", ctrl.POST)
-	userRouter.PATCH("/password-change", middlewares.CheckAuth(s.UserService), ctrl.ChangePassword)
-	userRouter.DELETE("/", middlewares.CheckAuth(s.UserService), ctrl.DELETE)
+	userRouter.PATCH("/password-change", middlewares.CheckAuth(users), ctrl.ChangePassword)
+	userRouter.DELETE("/", middlewares.CheckAuth(users), ctrl.DELETE)
 	userRouter.POST("/auth", ctrl.Auth)
-	userRouter.POST("/refresh", middlewares.CheckAuth(s.UserService), ctrl.RefreshToken)
-	userRouter.POST("/logout", middlewares.CheckAuth(s.UserService), ctrl.LogOut)
+	userRouter.POST("/refresh", middlewares.CheckAuth(users), ctrl.RefreshToken)
+	userRouter.POST("/logout", middlewares.CheckAuth(users), ctrl.LogOut)
 }

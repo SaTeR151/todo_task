@@ -1,20 +1,35 @@
 package rest
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/sater-151/todo-list/internal/controller/rest/board"
 	"github.com/sater-151/todo-list/internal/controller/rest/column"
 	"github.com/sater-151/todo-list/internal/controller/rest/task"
 	tasktype "github.com/sater-151/todo-list/internal/controller/rest/type"
 	"github.com/sater-151/todo-list/internal/controller/rest/user"
-	"github.com/sater-151/todo-list/internal/service"
+	boardservice "github.com/sater-151/todo-list/internal/service/board"
+	columnservice "github.com/sater-151/todo-list/internal/service/column"
+	taskservice "github.com/sater-151/todo-list/internal/service/task"
+	typeservice "github.com/sater-151/todo-list/internal/service/type"
+	userservice "github.com/sater-151/todo-list/internal/service/user"
 )
 
-type Rest struct {
-	s *service.TodoList
+type Services struct {
+	BoardService  boardservice.Board
+	ColumnService columnservice.Column
+	TaskService   taskservice.Task
+	TypeService   typeservice.Type
+	UserService   userservice.User
 }
 
-func New(s *service.TodoList) *Rest {
+type Rest struct {
+	s Services
+}
+
+func New(s Services) *Rest {
 	return &Rest{
 		s: s,
 	}
@@ -26,11 +41,54 @@ func (r *Rest) Run() *gin.Engine {
 
 	apiGroup := router.Group("/api")
 
-	user.Router(r.s, apiGroup)
-	board.Router(r.s, apiGroup)
-	column.Router(r.s, apiGroup)
-	task.Router(r.s, apiGroup)
-	tasktype.Router(r.s, apiGroup)
+	user.Router(r.s.UserService, apiGroup)
+	board.Router(r.s.BoardService, r.s.UserService, apiGroup)
+	column.Router(r.s.ColumnService, r.s.BoardService, r.s.UserService, apiGroup)
+	task.Router(r.s.TaskService, r.s.ColumnService, r.s.TypeService, r.s.BoardService, r.s.UserService, apiGroup)
+	tasktype.Router(r.s.TypeService, r.s.UserService, apiGroup)
+
+	registerWebRoutes(router)
 
 	return router
+}
+
+func registerWebRoutes(router *gin.Engine) {
+	router.Static("/css", "./web/css")
+	router.Static("/js", "./web/js")
+	router.StaticFile("/favicon.ico", "./web/favicon.ico")
+
+	page := func(fileName string) gin.HandlerFunc {
+		return func(ctx *gin.Context) {
+			ctx.File("./web/" + fileName)
+		}
+	}
+
+	servePage := func(path, fileName string) {
+		handler := page(fileName)
+		router.GET(path, handler)
+		router.HEAD(path, handler)
+	}
+
+	servePage("/", "index.html")
+	servePage("/login", "login.html")
+	servePage("/register", "register.html")
+	servePage("/home", "home.html")
+	servePage("/settings", "settings.html")
+	servePage("/boards/:board", "board.html")
+	servePage("/boards/:board/overview", "overview.html")
+	servePage("/boards/:board/tasks/:task", "task.html")
+
+	router.NoRoute(func(ctx *gin.Context) {
+		if strings.HasPrefix(ctx.Request.URL.Path, "/api/") {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+			return
+		}
+
+		if ctx.Request.Method != http.MethodGet {
+			ctx.Status(http.StatusNotFound)
+			return
+		}
+
+		ctx.File("./web/index.html")
+	})
 }
