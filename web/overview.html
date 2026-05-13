@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <script>
+      (() => {
+        let theme = "light";
+        try {
+          theme = localStorage.getItem("todo_task.theme") === "dark" ? "dark" : "light";
+        } catch {}
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
+    <link rel="stylesheet" href="/css/style.css">
+    <title>Обзор доски - Планировщик задач</title>
+  </head>
+  <body data-page="overview">
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/home">
+          <span class="brand-mark">T</span>
+          <span>Планировщик задач</span>
+        </a>
+        <nav class="nav">
+          <a class="ghost-button" href="/home">Кабинет</a>
+          <button class="danger-button" type="button" data-logout>Выйти</button>
+        </nav>
+      </header>
+      <main class="content">
+        <section class="page-title">
+          <div>
+            <h1 id="overview-title">Обзор доски</h1>
+            <p id="overview-caption">Задачи без канбан-представления.</p>
+            <div class="segmented-control" aria-label="Режим отображения доски">
+              <a class="segmented-option" id="overview-kanban-switch" href="/home">Канбан</a>
+              <a class="segmented-option is-active" id="overview-overview-switch" href="/home">Обзор</a>
+            </div>
+          </div>
+        </section>
+        <div class="alert" data-alert></div>
+        <section class="panel">
+          <div class="overview-toolbar">
+            <label class="field">
+              <span>Группировать</span>
+              <select class="select" id="group-by">
+                <option value="type">По типу</option>
+                <option value="column">По колонке</option>
+              </select>
+            </label>
+          </div>
+          <div id="overview-list"></div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>

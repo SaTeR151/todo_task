@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <script>
+      (() => {
+        let theme = "light";
+        try {
+          theme = localStorage.getItem("todo_task.theme") === "dark" ? "dark" : "light";
+        } catch {}
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
+    <link rel="stylesheet" href="/css/style.css">
+    <title>Регистрация - Планировщик задач</title>
+  </head>
+  <body data-page="register">
+    <main class="auth-page">
+      <section class="auth-card">
+        <h1>Регистрация</h1>
+        <p>Логин может содержать только латинские строчные буквы и цифры.</p>
+        <div class="alert" data-alert></div>
+        <form class="form-grid" id="register-form">
+          <label class="field">
+            <span>Логин</span>
+            <input class="input" name="login" autocomplete="username" maxlength="10" pattern="[a-z0-9]+" required>
+          </label>
+          <label class="field">
+            <span>Пароль</span>
+            <input class="input" name="password" type="password" autocomplete="new-password" maxlength="30" required>
+          </label>
+          <label class="field">
+            <span>Повторите пароль</span>
+            <input class="input" name="password_confirm" type="password" autocomplete="new-password" maxlength="30" required>
+          </label>
+          <button class="button symbol-button" type="submit" aria-label="Создать аккаунт" title="Создать аккаунт">
+            <span aria-hidden="true">+</span>
+          </button>
+        </form>
+        <p>Уже есть аккаунт? <a class="link-button" href="/login">Войти</a></p>
+      </section>
+    </main>
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>
